@@ -1,0 +1,381 @@
+{% extends "base.html" %}
+{% block title %}用户管理{% endblock %}
+{% block head %}
+    {{ super() }}
+
+<script>
+var   ID = '{{ id }}';
+var   action = '{{ action }}';
+var vm
+function initVM(user) {
+	    vm = new Vue({
+		el: '#form-user-add',
+		data: user,
+		methods: {
+		    chickq1:function (event){
+			    this.q1=!this.q1
+				if (this.q1==1){
+				this.q1_1=this.q1_2=this.q1_3=this.q1_4=1;
+				}
+				else{
+				this.q1_1=this.q1_2=this.q1_3=this.q1_4=0;
+				}
+			},
+			chickq2:function (event){
+			    this.q2=!this.q2
+			    if (this.q2==1){
+				this.q2_1=this.q2_2=this.q2_3=this.q2_4=1;
+				}
+				else{
+				this.q2_1=this.q2_2=this.q2_3=this.q2_4=0;
+				}
+			},
+            chickq3:function (event){
+			    this.q3=!this.q3
+			    if (this.q3==1){
+				this.q3_1=this.q3_2=1;
+				}
+				else{
+				this.q3_1=this.q3_2=0;
+				}
+			},
+			chickq4:function (event){
+			    this.q4=!this.q4
+			    if (this.q4==1){
+				this.q4_1=this.q4_2=1;
+				}
+				else{
+				this.q4_1=this.q4_2=0;
+				}
+			},
+			chickq5:function (event){
+			    this.q5=!this.q5
+			    if (this.q5==1){
+				this.q5_1=this.q5_2=1;
+				}
+				else{
+				this.q5_1=this.q5_2=0;
+				}
+			},
+			submit: function (event) {
+				event.preventDefault();
+	            admin=''				
+				if (this.q1_1==1) {admin=admin+'q1_1 '}
+                if (this.q1_2==1) {admin=admin+'q1_2 '}
+				if (this.q1_3==1) {admin=admin+'q1_3 '}
+                if (this.q1_4==1) {admin=admin+'q1_4 '}	
+				if (this.q2_1==1) {admin=admin+'q2_1 '}
+                if (this.q2_2==1) {admin=admin+'q2_2 '}	
+				if (this.q2_3==1) {admin=admin+'q2_3 '}
+                if (this.q2_4==1) {admin=admin+'q2_4 '}
+				if (this.q3_1==1) {admin=admin+'q3_1 '}
+                if (this.q3_2==1) {admin=admin+'q3_2 '}	
+				if (this.q4_1==1) {admin=admin+'q4_1 '}
+                if (this.q4_2==1) {admin=admin+'q4_2 '}	
+                if (this.q5_1==1) {admin=admin+'q5_1 '}
+                if (this.q5_2==1) {admin=admin+'q5_2 '}
+				this.admin=admin
+                if (! this.name.trim()) {
+                    return alert('请输入名字');
+                }
+                if (this.password1.length < 6) {
+                    return alert('口令长度至少为6个字符');
+                }
+                if (this.password1 !== this.password2) {
+                    return alert('两次输入的口令不一致');
+                }
+				var $form = $('#form-user-add').find('form');
+				postJSON(action,{
+				name:this.name,
+				admin: this.admin,
+				password: CryptoJS.MD5(this.password1).toString(),
+				}, function (err, r) {
+					if (err) {
+						showError(err);
+					}
+					else {
+						return location.assign('/users');
+					}
+				});
+			}
+		}
+	});
+};
+
+$(function () {
+    if (ID) {
+ 	    getJSON('/api/user/' + ID, function (err,user) {
+            if (err) {
+                return  (err);
+            }
+            
+			str=user.admin
+			if (str.match("q1_1")) {user.q1_1=1}
+			if (str.match("q1_2")) {user.q1_2=1}
+			if (str.match("q1_3")) {user.q1_3=1}
+			if (str.match("q1_4")) {user.q1_4=1}	
+			if (str.match("q2_1")) {user.q2_1=1}	
+			if (str.match("q2_2")) {user.q2_2=1}	
+			if (str.match("q2_3")) {user.q2_3=1}	
+			if (str.match("q2_4")) {user.q2_4=1}	
+			if (str.match("q3_1")) {user.q3_1=1}	
+			if (str.match("q3_2")) {user.q3_2=1}				
+			if (str.match("q4_1")) {user.q4_1=1}	
+			if (str.match("q4_2")) {user.q4_2=1}
+			if (str.match("q5_1")) {user.q5_1=1}	
+			if (str.match("q5_2")) {user.q5_2=1}
+			initVM(user);
+        });
+    }
+    else {
+        initVM({
+            name: '',
+			admin: '',
+			password1: '',
+			password2: '',
+			q1_1:'',
+			q1_2:'',
+			q1_3:'',
+			q1_4:'',
+			q2_1:'',
+			q2_2:'',
+			q2_3:'',
+			q2_4:'',
+			q3_1:'',
+			q3_2:'',
+			q4_1:'',
+			q4_2:'',			
+			q5_1:'',
+			q5_2:''
+        });
+    }
+	getJSON('/api/users', {
+		page: {{ page_index }},
+	}, function (err, results) {
+		if (err) {
+			return fatal(err);
+		}
+		initVM1(results);
+	});
+});  
+
+function change(str)	{	
+	    str1=""
+		if (str.match("q1_1")) {str1=str1+" 入园信息登记 "}
+		if (str.match("q1_2")) {str1=str1+" 幼儿信息修改 "}
+		if (str.match("q1_3")) {str1=str1+" 点名 "}
+		if (str.match("q1_4")) {str1=str1+" 点名信息修改 "}		
+		if (str.match("q2_1")) {str1=str1+" 教师信息登记 "}	
+		if (str.match("q2_2")) {str1=str1+" 教师信息修改 "}	
+		if (str.match("q2_3")) {str1=str1+" 建立班级 "}	
+		if (str.match("q2_4")) {str1=str1+" 班级信息修改 "}	
+		if (str.match("q3_1")) {str1=str1+" 收取费用 "}
+		if (str.match("q3_2")) {str1=str1+" 修改入园学费 "}	
+		if (str.match("q4_1")) {str1=str1+"兴趣班人员调整 "}			
+		if (str.match("q4_2")) {str1=str1+" 兴趣班学费 "}	
+		if (str.match("q5_1")) {str1=str1+" 用户管理 "}	
+		if (str.match("q5_2")) {str1=str1+" 基础设置 "}
+		return str1
+}
+
+function initVM1(data) {
+    for (i in data.users){
+	    str=data.users[i].admin
+		data.users[i].admin=change(str)
+	}
+    var vm1 = new Vue({
+        el: '#div-users',
+        data: {
+		    page:data.page,
+            users: data.users
+             },
+        methods: {
+			reload:function(index){
+			    event.preventDefault();
+				getJSON('/api/users', {
+					page:index,
+				}, function (err, results) {
+					if (err) {
+						return fatal(err);
+					}	
+					vm1.users=results.users;
+                    vm1.page=results.page;
+					for (i in vm1.users){
+						str=vm1.users[i].admin
+						vm1.users[i].admin=change(str)
+					}				
+				});
+		    },
+            previous: function () {
+                this.reload(this.page.page_index - 1);
+            },
+            next: function () {
+                this.reload(this.page.page_index + 1);
+            },	
+            edit_user: function (user) {
+                location.assign('/user/edit/' + user.id);
+            },
+            delete_user: function (user) {
+                if (confirm('确认要删除“' + user.name + '”？删除后不可恢复！')) { 
+                    url=('/api/user/'+user.id +'/delete')
+					postJSON(encodeURI(url), function (err, r) {
+                        if (err) {
+                            return alert(err.message || err.error || err);
+                        }
+                        refresh();
+                    });
+                };
+            }
+        },
+    });
+}
+
+
+</script>
+{% endblock %}
+
+{%block panel%}
+<div class="tm-panel  uk-panel uk-panel-box  ">                        
+	<div class="uk-panel-title">幼儿管理</div>
+	<div class="uk-panel-li"><a href="/users">用户管理</a></div> 
+	<div class="line"></div>
+	<div class="uk-panel-li"><a href="/password">修改密码</a></div>
+	<div class="line"></div>
+	<div class="uk-panel-li"><a href="/config">基础设置</a></div> 
+	<div class="line"></div>
+</div>
+{%endblock%}
+					
+{% block content %}
+<div class="tit"><a href="/">主页 </a>  》 <a href="/">用户管理 </a></div>
+<div class="divmain-title">幼儿入园登记</div>				
+
+<ul class="uk-tab" data-uk-tab="{connect:'#tab-content'}">
+	<li class="uk-active"><a href="#">加入用户</a></li>
+	<li><a href="#">用户列表</a></li>
+	
+</ul>
+
+<ul id="tab-content" class="uk-switcher uk-margin">
+	<li class="uk-active">				
+
+<div class="divmain" id="form-user-add" >
+<form  v-on="submit: submit" class="uk-form uk-form-horizontal">
+
+<div class="uk-form-row ">
+	<label class="uk-form-label" for="name">用户名:</label>
+	<div class="uk-form-controls">
+		<input v-model="name" id="name" type="text"  placeholder="用户名" >
+	</div>
+</div> 	
+
+<div class="uk-form-row ">
+	<label class="uk-form-label">输入口令:</label>
+	<div class="uk-form-controls">
+		<input v-model="password1" type="password" maxlength="50" placeholder="输入口令"> 
+	</div>
+</div>
+<div class="uk-form-row ">
+	<label class="uk-form-label">重复口令:</label>
+	<div class="uk-form-controls">
+		<input v-model="password2" type="password" maxlength="50"  placeholder="重复口令">
+	</div>
+</div>
+<div class="uk-form-row ">
+	<label class="uk-form-label">权限:</label>
+	<div class="uk-form-controls uk-form-controls-text">
+		<label><input v-model="q1" v-on="click:chickq1()" type="checkbox" > 幼儿管理 </label> <br>
+		<label><input v-model="q1_1" type="checkbox"> 入园信息登记 </label>
+		<label><input v-model="q1_2" type="checkbox" > 幼儿信息修改 </label>
+		<label><input v-model="q1_3" type="checkbox" > 点名 </label>
+		<label><input v-model="q1_4" type="checkbox" > 点名信息修改 </label>
+	</div>
+</div>
+<div class="uk-form-row ">
+	<label class="uk-form-label"></label>
+	<div class="uk-form-controls uk-form-controls-text">
+		<label><input v-model="q2" v-on="click:chickq2()"type="checkbox" > 教师与班级管理 </label> <br>
+		<label><input v-model="q2_1" type="checkbox"> 教师信息登记 </label>
+		<label><input v-model="q2_2" type="checkbox" >教师信息修改 </label>
+		<label><input v-model="q2_3" type="checkbox" > 建立班级 </label>
+		<label><input v-model="q2_4" type="checkbox" > 班级信息修改 </label>
+	</div>
+</div>
+<div class="uk-form-row ">
+	<label class="uk-form-label"></label>
+	<div class="uk-form-controls uk-form-controls-text">
+		<label><input v-model="q3" v-on="click:chickq3()" type="checkbox" > 收费管理 </label> <br>
+		<label><input v-model="q3_1" type="checkbox" > 收取费用 </label>
+		<label><input v-model="q3_2" type="checkbox" > 修改入园学费 </label>
+	</div>
+</div>
+<div class="uk-form-row ">
+	<label class="uk-form-label"></label>
+	<div class="uk-form-controls uk-form-controls-text">
+		<label><input v-model="q4" v-on="click:chickq4()"type="checkbox" > 兴趣班管理 </label> <br>
+		<label><input v-model="q4_1" type="checkbox"> 兴趣班人员调整 </label>
+		<label><input v-model="q4_2" type="checkbox" > 兴趣班学费 </label>
+	</div>
+</div>
+<div class="uk-form-row ">
+	<label class="uk-form-label"></label>
+	<div class="uk-form-controls uk-form-controls-text">
+		<label><input v-model="q5" v-on="click:chickq5()" type="checkbox" > 系统设置 </label> <br>
+		<label><input v-model="q5_1" type="checkbox"> 用户管理 </label>
+		<label><input v-model="q5_2" type="checkbox" >基础设置 </label>
+	</div>
+</div>
+<div class="divbutton">
+<button type="submit" class="uk-button uk-button-primary"> 加入</button>
+</div>
+
+</form>
+</div>
+
+</li>
+
+<li>						
+<div class="divmain" id="div-users" >					
+<div class="divcontainer uk-overflow-container">
+      
+        <table class="uk-table uk-table-striped  uk-text-nowrap">
+            <thead>
+                <tr>
+                    <th class="">用户名</th>
+                    <th class="" >权限</th>
+					<th class="">操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr v-repeat="user: users" >
+                    <td>
+                        <div v-text="user.name"></div>
+                    </td>
+					 <td wider='200px'>
+                        <div v-text="user.admin"></div>
+                    </td>					
+                    <td>
+                        <a href="#0" v-on="click: edit_user(user)">edit<i class=""></i>
+                        <a href="#0" v-on="click: delete_user(user)">delete<i class=""></i>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+		</div>
+		
+		
+		<div class="divpage uk-width-1-1 uk-text-center">
+				<ul class="uk-pagination">
+                <li v-if="! page.has_previous" class="uk-disabled"><span><i class="uk-icon-angle-double-left"></i></span></li>
+                <li v-if="page.has_previous"><a v-on="click: previous()" href=""><i class="uk-icon-angle-double-left"></i></a></li>
+                <li class="uk-active"><span v-text="page.page_index"></span></li>
+                <li v-if="! page.has_next" class="uk-disabled"><span><i class="uk-icon-angle-double-right"></i></span></li>
+                <li v-if="page.has_next"><a v-on="click: next()" href=""><i class="uk-icon-angle-double-right"></i></a></li>
+            </ul>
+        </div>
+</div>						
+</li>
+					
+</ul>
+{%endblock%}
+             

@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <script type="text/javascript" src="/static/js/jquery.js"></script>
+	<script type="text/javascript" src="/static/js/vue.js"></script>
+	<script type="text/javascript" src="/static/js/wang.js"></script>
+   <style type="text/css">
+#customers
+  {
+  table-layout: fixed;
+  font-family:"Trebuchet MS", Arial, Helvetica, sans-serif;
+  width:600px;
+  border-collapse:collapse;
+  }
+#customers caption
+{font-family:"Trebuchet MS", Arial, Helvetica, sans-serif;
+ font-size:1.5em;
+ font-weight:bold;
+}
+#customers td, #customers th 
+  {
+  text-align:center;
+  font-size:1em;
+  border:1px solid black;
+  padding:3px 7px 2px 7px;
+  }
+#customers td.right, #customers th.right 
+  {
+   text-align:left;
+   border-right-style:none;
+  }
+#customers td.left, #customers th.left 
+  {
+   text-align:right;
+   border-left-style:none  
+  }  
+ #customers td.main
+  {
+  vertical-align:top;
+   
+  } 
+#customers th 
+  {
+  font-size:1em;
+  text-align:center;
+  padding-top:5px;
+  padding-bottom:4px;
+  }
+
+#customers tr.alt td 
+  {
+  height:200px;
+  }
+.charge{
+height:30px;
+  } 
+
+.charge_left{
+ float:left;
+
+} 
+.charge_right{
+ float:right;
+ }
+.foot{
+font-weight:bold;
+}
+#ipt{
+width:600px;
+text-align:center;
+padding-top:20px;
+}
+
+</style>
+<!--window.print打印指定div  
+window.print可以打印网页，但有时候我们只希望打印特定控件或内容，怎么办呢？  
+  
+首先我们可以把要打印的内容放在div中，然后用下面的代码进行打印。  
+-->  
+  
+<script language="javascript"> 
+
+ 
+function printdiv(printpage) { 
+ 
+var headstr = "<html><head><title></title></head><body>";  
+var footstr = "</body>";  
+var printData = document.getElementById(printpage).innerHTML; //获得 div 里的所有 html 数据
+var oldstr = document.body.innerHTML;  
+document.body.innerHTML = headstr+printData+footstr;  
+window.print();  
+document.body.innerHTML = oldstr;  
+return false;  
+} 
+function initVM(printdata) {
+    vm = new Vue({
+        el: '#div_print',
+        data: printdata,
+        }
+)}
+$(function () {
+
+ 	    getJSON('/api/print/charge', function (err,results) {
+            if (err) {
+                return  (err);
+            }
+			initVM(results.r);
+        });
+})
+
+</script>  
+<title>打印收据</title>  
+</head>  
+  
+<body> 
+  
+<div id="div_print">  
+  
+ 
+  <div>
+   <table id="customers">
+   <caption>新雨幼儿园专用收据<caption>
+            <tbody>
+                <tr>
+                    <th width="8%" class="first">姓名</th>
+					<td width="12%" class="first"><div   v-text="name"></div></td>
+                    <th width="8%" class="first">班级</th>
+					<td width="22%"><div   v-text="classname"></div></td>
+                    <th width="18%" colspan='2'>缴费所属期</th>
+					<td width="32%" colspan='2'><div   v-text="cycle"></div></td>
+				</tr>
+				
+				<tr>
+                    <th class="right" colspan='3'>应收费用名称</th>
+					<th class="left">金额</th>
+				    <th class="right" colspan='3'>应退费用名称</th>
+					<th class="left">金额</th>				
+				</tr >
+				<tr class="alt">
+				<td class="main" colspan='4' >
+				<div v-repeat="charge: charges" class="charge"> 
+					 <div v-text="charge.chargename" class="charge_left"></div> <div  v-text="charge.charge" class="charge_right"> </div>
+				</div>	
+    			</td>			
+				<td class="main" colspan='4'>
+				<div v-repeat="back: backs" class="charge"> 
+					 <div v-text="back.backname" class="charge_left"></div> <div v-text="back.back" class="charge_right"> </div>
+				</div>		
+				</td>			
+				</tr>
+				
+				<tr>
+				    <th class="right" colspan='3'>应收费用合计:</th>
+					<td class="left" ><div   v-text="chargetotal"></div></td>
+					<th class="right" colspan='3'>应退费用合计:</th>
+					<td class="left" ><div   v-text="backtotal"></div></td>
+				</tr>
+				<tr>				
+					<th class="right" colspan='3'>实际收取费用:</th>
+					<td class="left" ><div   v-text="total"></div></td>
+					<th class="right" colspan='1'>备注:</th>
+					<td class="left" colspan='3' ><div   v-text="remark"></div></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+	<div class="foot"> &nbsp;&nbsp;收款人：&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp收款时间：<span v-text="date"></div>
+</div> 
+ <div id="ipt"><input  type="button"  onClick="printdiv('div_print');" value=" 打印收据">  </div>
+</body>  
+  
+</html>  

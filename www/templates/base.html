@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html class="">
+<head>
+    {% block head %}
+	<meta charset="utf-8" />	
+	<link id="data-uikit-theme" rel="stylesheet" href="/static/uikit/css/uikit.min.css">
+    <link  rel="stylesheet" href="/static/uikit/css/py.css">
+    <script type="text/javascript" src="/static/js/jquery.js"></script>
+    <script type="text/javascript" src="/static/js/md5.js"></script>
+	<script type="text/javascript" src="/static/js/vue.js"></script>
+	<script type="text/javascript" src="/static/js/wang.js"></script>
+    <script src="/static/uikit/js/uikit.min.js"></script>	
+	 
+    <title>{% block title %}{% endblock %}-幼儿园管理</title>
+	
+	{% endblock %}
+
+</head>
+<body  class="">
+   <div id="divFullBackgroundWrapper">            
+<div id="divHeaderWrapper">
+    <div class="PageWrapperHeader">
+        <div id="divLogo">
+            <img src="/static/image/logo.png" style="border-width:0px;" />
+        </div>
+		
+		<div id="headphoto">
+		    <img src="/static/image/6.jpg" style="border-width:0px;height: 120px;" />
+		    <img src="/static/image/5.jpg" style="border-width:0px;height: 120px;" />
+
+		</div>
+	 </div>	
+	  </div>   
+            <nav class="tm-navbar uk-navbar ">
+            <div class="tm-d uk-container-center">
+                <ul class="uk-navbar-nav uk-hidden-small">				
+                    <li class="uk-parent" data-uk-dropdown><a href="" >幼儿日常管理</a>
+					
+					     <div class="tm-dropdown  uk-dropdown uk-dropdown-navbar">
+							<ul class="uk-nav-navbar ">
+								<li class="uk-visible-hover-inline"><div class="uk-hidden"><img src="/static/image/jt.png" style="border-width:0px;" /></div> <a href="/kids/add">幼儿入园</a></li>
+								<div class="line"></div>
+								<li class="uk-visible-hover-inline"><div class="uk-hidden"><img src="/static/image/jt.png" style="border-width:0px;" /></div><a href="/kids">幼儿信息列表</a></li>
+								<div class="line"></div>
+								<li class="uk-visible-hover-inline"><div class="uk-hidden"><img src="/static/image/jt.png" style="border-width:0px;" /></div><a href="/kid">幼儿详细信息</a></li>
+								<div class="line"></div>
+								<li class="uk-visible-hover-inline"><div class="uk-hidden"><img src="/static/image/jt.png" style="border-width:0px;" /></div> <a href="/rollcall">点名</a></li>
+								<div class="line"></div>
+								<li class="uk-visible-hover-inline"><div class="uk-hidden"><img src="/static/image/jt.png" style="border-width:0px;" /></div> <a href="/rollcall/modify">点名信息修改</a></li>
+								<div class="line"></div>								
+								<li class="uk-visible-hover-inline"><div class="uk-hidden"><img src="/static/image/jt.png" style="border-width:0px;" /></div><a href="/attendance">考勤信息查询</a></li>
+
+							</ul>
+						</div>
+					</li>					
+					
+                    <li class="uk-parent" data-uk-dropdown><a href="">教师与班级管理</a>
+					
+					 <div class="tm-dropdown  uk-dropdown uk-dropdown-navbar">
+							<ul class="uk-nav-navbar ">
+								<li class="uk-visible-hover-inline"><div class="uk-hidden"><img src="/static/image/jt.png" style="border-width:0px;" /></div> <a href="/teachers/add">加入教师</a></li>
+								<div class="line"></div>
+								<li class="uk-visible-hover-inline"><div class="uk-hidden"><img src="/static/image/jt.png" style="border-width:0px;" /></div><a href="/teachers">教师信息</a></li>
+								<div class="line"></div>
+								<li class="uk-visible-hover-inline"><div class="uk-hidden"><img src="/static/image/jt.png" style="border-width:0px;" /></div> <a href="/classes/add">建立班级</a></li>
+								<div class="line"></div>
+								<li class="uk-visible-hover-inline"><div class="uk-hidden"><img src="/static/image/jt.png" style="border-width:0px;" /></div><a href="/classes">班级信息查询</a></li>
+							</ul>
+						</div>
+					
+					</li>
+                     <li class="uk-parent" data-uk-dropdown><a href="" >收费管理</a>
+					
+					     <div class="tm-dropdown  uk-dropdown uk-dropdown-navbar">
+							<ul class="uk-nav-navbar ">								
+								<li class="uk-visible-hover-inline"><div class="uk-hidden"><img src="/static/image/jt.png" style="border-width:0px;" /></div><a href="/tuition">收取学费</a></li>
+								<div class="line"></div>								
+								<li class="uk-visible-hover-inline"><div class="uk-hidden"><img src="/static/image/jt.png" style="border-width:0px;" /></div><a href="/year_tuition">按年收取保教费</a></li>
+								<div class="line"></div>
+								<li class="uk-visible-hover-inline"><div class="uk-hidden"><img src="/static/image/jt.png" style="border-width:0px;" /></div><a href="/deposit">收取入园押金</a></li>
+								<div class="line"></div>
+								<li class="uk-visible-hover-inline"><div class="uk-hidden"><img src="/static/image/jt.png" style="border-width:0px;" /></div><a href="/article">收取入园杂费</a></li>
+								<div class="line"></div>
+								<li class="uk-visible-hover-inline"><div class="uk-hidden"><img src="/static/image/jt.png" style="border-width:0px;" /></div><a href="/tuition/check">个人收费信息明细查询</a></li>
+								<div class="line"></div>
+								<li class="uk-visible-hover-inline"><div class="uk-hidden"><img src="/static/image/jt.png" style="border-width:0px;" /></div><a href="/year_tuition/check">按年收取保教费查询</a></li>					
+							</ul>
+						</div>
+					</li>	 
+                    <li class="uk-parent" data-uk-dropdown><a href="">兴趣班管理</a>
+					
+					
+					 <div class="tm-dropdown  uk-dropdown uk-dropdown-navbar">
+							<ul class="uk-nav-navbar ">
+								<li class="uk-visible-hover-inline"><div class="uk-hidden"><img src="/static/image/jt.png" style="border-width:0px;" /></div> <a href="/i_class_kids">人员调整</a></li>
+								<div class="line"></div>
+								<li class="uk-visible-hover-inline"><div class="uk-hidden"><img src="/static/image/jt.png" style="border-width:0px;" /></div><a href="/i_class">兴趣班人员信息</a></li>
+								<div class="line"></div>
+								<li class="uk-visible-hover-inline"><div class="uk-hidden"><img src="/static/image/jt.png" style="border-width:0px;" /></div><a href="/i_tuition">兴趣班学费</a></li>
+							</ul>
+						</div>
+					</li>
+					
+
+					<li class="uk-parent" data-uk-dropdown><a href="" target="_blank">系统设置</a>
+					 <div class="tm-dropdown  uk-dropdown uk-dropdown-navbar">
+							<ul class="uk-nav-navbar ">
+								<li class="uk-visible-hover-inline"><div class="uk-hidden"><img src="/static/image/jt.png" style="border-width:0px;" /></div> <a href="/users">用户管理</a></li>
+								<div class="line"></div>
+								<li class="uk-visible-hover-inline"><div class="uk-hidden"><img src="/static/image/jt.png" style="border-width:0px;" /></div> <a href="/password">修改密码</a></li>
+								<div class="line"></div>
+								<li class="uk-visible-hover-inline"><div class="uk-hidden"><img src="/static/image/jt.png" style="border-width:0px;" /></div><a href="/config">基础设置</a></li>
+							</ul>
+						</div>
+					</li>
+                
+				</ul>        
+
+            </div>
+        </nav>  
+	
+		
+	<div class="PageWrapperShadow"> 
+		<div class="PageWrapper">
+			<div class="uk-container uk-container-center ">
+				<div class="uk-grid" data-uk-grid-margin>
+					<div class="uk-width-medium-1-4">
+					{%block panel%}
+
+					{%endblock%}
+					</div>
+					<div class="uk-width-medium-3-4">
+						{% block content %}
+						
+						{%endblock%}
+					</div>
+
+				</div>
+			</div>
+		</div>
+	</div>	
+		
+	 </div>	
+</body>
+</html>

@@ -1,0 +1,212 @@
+{% extends "base.html" %}
+{% block title %}收费管理{% endblock %}
+{% block head %}
+    {{ super() }}
+	<link href="/static/uikit/css/components/datepicker.css" rel="stylesheet" type="text/css" />
+	<link href="/static/uikit/css/components/form-select.css" rel="stylesheet" type="text/css" />	
+	<script src="/static/uikit/js/components/datepicker.js"></script>
+	<script src="/static/uikit/js/components/form-select.js"></script>
+<script>
+var vm
+class_select=''
+function initVM(data) {
+    vm = new Vue({
+        el: '#div-kids',
+        data: {
+		    kid:data.kid,
+            tuitions: data.tuitions,
+			k_classes:data.k_classes,
+			class_select:'',
+			start:'',
+            end:'',
+			name:''
+            },
+        methods: {
+		    reload:function(page_index){
+			    if (! this.name.trim()) {
+                    return alert('请输入所要查询的孩子姓名！');
+                }                				
+			    event.preventDefault();
+				start=document.getElementById("start").value
+				if (! start.trim()) {
+                    return alert('请选择起始时间！');
+                }   
+			    start= start +' 00:00:00'			
+				start_time=js_strto_time(start);
+			    end=document.getElementById("end").value
+				if (! end.trim()) {
+                    return alert('请选择结束时间！');
+                }   
+			    end= end +' 24:00:00'				
+				end_time=js_strto_time(end);  
+				getJSON('/api/tuition/check', {
+					class_select: this.class_select,
+					start:start_time,
+					end:end_time,
+					name:this.name,
+				}, function (err, results) {
+					if (err) {
+						return fatal(err);
+					}                   					
+					vm.tuitions=results.tuitions;
+					vm.kid=results.kid;
+					if (vm.kid=={}) {
+                    return alert('请检查孩子姓名是否正确！');
+                    }   
+					for (i in vm.tuitions){
+					    a=js_date_time(vm.tuitions[i].time)
+					    vm.tuitions[i].month=a.getFullYear()+'年'+(a.getMonth()+1)+'月'	+a.getDate()+'日'				
+						}					    
+				});
+		    },
+			
+        },
+    });
+}
+$(function() {
+	getJSON('/api/tuition/check', {
+		class_select: class_select,
+		name:'',
+	}, function (err, results) {
+			if (err) {
+				return fatal(err);
+			}
+			initVM(results);			
+			x=document.getElementById("class_select");
+			classes=results.k_classes
+			for(var i=0;i<classes.length;i++){
+				v = classes[i].id; //value
+				name = classes[i].name;
+				opt = new Option(name,v); 
+				x.options.add(opt);
+				}        			
+	});
+});
+//时间转换为时间戳
+function js_strto_time(str_time){
+    var new_str = str_time.replace(/:/g,'-');
+    new_str = new_str.replace(/ /g,'-');
+    var arr = new_str.split("-");
+    var datum = new Date(Date.UTC(arr[0],arr[1]-1,arr[2],arr[3]-8,arr[4],arr[5]));
+    return strtotime = datum.getTime()/1000;
+}
+function js_date_time(unixtime) {
+    var timestr = new Date(parseInt(unixtime) * 1000);
+    return timestr;
+}
+
+      
+</script>
+{% endblock %}
+
+{%block panel%}
+<div class="tm-panel  uk-panel uk-panel-box  ">                        
+	<div class="uk-panel-title">收费管理</div>
+	<div class="uk-panel-li"><a href="/tuition">收取学费</a></div> 
+	<div class="line"></div>
+	<div class="uk-panel-li"><a href="/year_tuition">按年收取学费</a></div> 
+	<div class="line"></div>
+	<br>
+	<div class="uk-panel-li"><a href="/deposit">收取入园押金</a></div> 
+	<div class="line"></div>
+	<div class="uk-panel-li"><a href="/article">收取入园杂费</a></div>  
+	<div class="line"></div>
+	<br>
+	<div class="uk-panel-li"><a href="/tuition/check">个人收费信息明细查询</a></div> 
+	<div class="line"></div>	
+    <div class="uk-panel-li"><a href="/year_tuition/check">按年收取保教费查询</a></div> 
+	<div class="line"></div>	
+    
+	
+</div>
+{%endblock%}
+					
+{% block content %}
+<div class="tit"><a href="/">主页 </a>  》 <a href="">收费管理 </a></div>
+
+<div id="div-kids" class="div-pagemain" >		
+
+
+	<form  class="uk-form uk-form-stacked ">
+	<div class="uk-grid">
+	
+	<div class="uk-width-1-5">
+	<div class="uk-form-row ">
+			<label class="uk-form-label">班级名称:</label>
+			<div class="uk-form-controls  uk-form-controls-text">
+				<select v-model="class_select" id="class_select" >
+					<option value=""></option>
+				</select>
+		</div>
+	</div>	
+	</div>
+		<div class="uk-width-1-5">
+	<div class="uk-form-row ">
+		<label class="uk-form-label">姓名:</label>
+		<div class="uk-form-controls  uk-form-controls-text">
+			<input id="name" v-model="name" type="text"  placeholder="录入姓名">
+		</div>
+	</div>	
+	</div>
+	<div class="uk-width-1-5">
+		<div class="uk-form-row">
+			<label class="uk-form-label">起始时间:</label>
+			<div class="uk-form-controls">
+				<input id="start" v-model="start" type="text"   data-uk-datepicker="{format:'YYYY-MM-DD'}" placeholder="选择时间">
+			</div>	
+		</div>
+	</div>
+  	<div class="uk-width-1-5">
+		<div class="uk-form-row">
+			<label class="uk-form-label">结束时间:</label>
+			<div class="uk-form-controls">
+				<input id="end" v-model="end" type="text"   data-uk-datepicker="{format:'YYYY-MM-DD'}" placeholder="选择时间">
+			</div>	
+		</div>
+	</div>
+	<div class="uk-width-1-5 ">
+		<div class="uk-form-row uk-vertical-align">
+			<div class=" uk-form-controls button">
+				<button type="submit" class="uk-button uk-button-primary " v-on="click: reload()">查询</button>
+			</div>
+		</div>
+	</div>
+
+	</div>
+	</form>
+<hr>
+	
+	<div class="divmain-title">个人缴费信息查询</div>		
+	<div class="divcontainer ">
+      
+        <table  class="uk-table uk-table-striped ">
+            <thead>
+                <tr> 
+					<th class="">时间</th>
+					<th class="">费用类别</th>			
+                    <th class="">数额</th>
+
+                </tr>
+            </thead>
+            <tbody>
+                <tr v-repeat="tuition:tuitions" >
+                    <td>
+                        <div   v-text="tuition.month"></div>
+                    </td>                   
+
+					 <td>
+                        <div   v-text="tuition.chargename"></div>
+                    </td>
+					
+					 <td>
+                        <div  v-text="tuition.paid"></div>
+                    </td>					
+                </tr>
+            </tbody>
+        </table>
+		</div>	
+		
+
+ </div>
+{%endblock%}
+             

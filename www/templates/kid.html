@@ -1,0 +1,215 @@
+{% extends "base.html" %}
+{% block title %}幼儿管理{% endblock %}
+{% block head %}
+    {{ super() }}
+	
+<script>
+var vm
+class_select=''
+function initVM(data) {
+    vm = new Vue({
+        el: '#div-kids',
+        data: {
+		    page:data.page,
+            kid: data.kid,
+			k_classes:data.k_classes,
+			s_classes:data.s_classes,
+			class_select:'',
+			type:'常规班',
+			name:'',
+             },
+        methods: {
+		    reload:function(index){
+			    event.preventDefault();
+				getJSON('/api/kid', {
+					page:index,
+					class_select: this.class_select,
+					name:this.name,
+				}, function (err, results) {
+					if (err) {
+						return fatal(err);
+					}
+					vm.kid=results.kid;
+					vm.kid.birthday=vm.kid.id_number.slice(6,10)+'年'+vm.kid.id_number.slice(10,12)+'月'+vm.kid.id_number.slice(12,14)+'日'
+                    vm.page=results.page;
+					url=vm.kid.image;
+			        loadimage(url);
+				});
+		    },
+            previous: function () {
+                this.reload(this.page.page_index - 1);
+            },
+            next: function () {
+                this.reload(this.page.page_index + 1);
+            },		
+            edit_kid: function (kid) {
+                location.assign('/kids/edit/' + kid.id);
+            },
+        },
+    });
+}
+$(function() {
+	getJSON('/api/kid', {
+		page: {{ page_index }},
+		class_select: class_select,
+		name:''
+	}, function (err, results) {
+			if (err) {
+				return fatal(err);
+			}		    
+			results.kid.birthday=results.kid.id_number.slice(6,10)+'年'+results.kid.id_number.slice(10,12)+'月'+results.kid.id_number.slice(12,14)+'日'
+            initVM(results);
+			url=results.kid.image;
+			loadimage(url);
+			x=document.getElementById("class_select");
+			classes=results.k_classes
+			for(var i=0;i<classes.length;i++){
+				v = classes[i].id; //value
+				name = classes[i].name;
+				opt = new Option(name,v); 
+				x.options.add(opt);
+				}
+	});
+	});
+
+	
+//显示照片
+function loadimage(url) { 
+	var  xmlhttp=new XMLHttpRequest();
+	xmlhttp.onreadystatechange=function()
+		{
+		if (xmlhttp.readyState==4 && xmlhttp.status==200)
+			{
+			document.getElementById("photo_view").innerHTML='<img src="/'+xmlhttp.responseText+'"/>'
+			}
+		}
+	xmlhttp.open("POST","/photo",true);
+	xmlhttp.setRequestHeader("Content-type","application/x-www-form-urlencode");
+	xmlhttp.send(url);
+	vm.image=url;
+}
+</script>
+
+{% endblock %}
+
+{%block panel%}
+<div class="tm-panel  uk-panel uk-panel-box  ">                        
+	<div class="uk-panel-title">幼儿管理</div>
+	<div class="uk-panel-li"><a href="/kids/add">幼儿入园</a></div> 
+	<div class="line"></div>
+	<div class="uk-panel-li"><a href="/kids">幼儿信息列表</a></div>
+	<div class="line"></div>
+	<div class="uk-panel-li"><a href="/kid">幼儿详细信息</a></div>
+	<div class="line"></div>	
+	<br>
+	<div class="uk-panel-li"><a href="/rollcall">点名</a></div> 
+	<div class="line"></div>
+	<div class="uk-panel-li"><a href="/rollcall/modify">点名信息修改</a></div> 
+	<div class="line"></div>	
+	<div class="uk-panel-li"><a href="/attendance">考勤信息</a></div>
+	<div class="line"></div>
+	<br>
+
+</div>
+{%endblock%}
+					
+{% block content %}
+<div class="tit"><a href="/">主页 </a>  》 <a href="/">幼儿管理 </a></div>
+
+<div id="div-kids" class="div-pagemain" >		
+
+
+	<form  class="uk-form uk-form-stacked ">
+	<div class="uk-grid">
+<div class="uk-widtd-1-4">
+	<div class="uk-form-row ">
+		<label class="uk-form-label">班级名称:</label>
+		<div class="uk-form-controls  uk-form-controls-text">
+			<select v-model="class_select" id="class_select" v-on="change:reload()">
+				<option value=""></option>
+				<option value="未分配">未分配</option>
+			</select>
+		</div>	
+	</div>
+	</div>	
+	<div class="uk-widtd-1-4">
+		<label class="uk-form-label" >姓名:</label>
+		<div class="uk-form-controls ">
+			<input v-model="name" v-on="change:reload()" type="text"  placeholder="名字" >
+		</div>
+	</div>
+	
+	</div>
+	</form>
+<hr>
+	
+	<div class="divmain-title"  >幼儿信息</div>		
+	<div class="divcontainer " >
+        <table class="uk-table  uk-text-nowrap" id="kid_item" >
+
+            <tbody>
+                <tr >
+				    <th class="" width="15%" colspan="2">姓名</th>
+                    <td width="15%"><div v-text="kid.name"></div></td>
+					
+					<th width="15%" class=""  >班级</th>
+					<td width="28%" colspan="2"><div  v-text="kid.k_class_name"></div></td>
+
+					<td  width="27%" rowspan="4" ><div id="photo_view"></div></td>
+				</tr>
+				<tr>	
+					<th class=""  colspan="2">性别</th>
+					<td><div v-text="kid.sex"></div></td>
+					<th class="" >出生日期</th>
+					<td colspan="2"><div v-text="kid.birthday"></div></td>
+					
+				</tr>
+				<tr>
+					<th class="" colspan="2">身份证号码</th>
+                    <td  colspan="4"><div v-text="kid.id_number"></div></td>					
+				</tr>
+				<tr>
+					<th class="" colspan="2">家庭住址</th>
+					<td colspan="4"><div  v-text="kid.address"></div>
+                    </td>
+				</tr>
+				<tr>
+				    <th class="" rowspan="2">联系人</th>
+					<th class="" >关系</th>
+					<td ><div  v-text="kid.contacts1"></div></td>
+					<th class="" >姓名</th>					
+					<td ><div  v-text="kid.con1_name"></div></td>
+					<th class="" >联系电话</th>		
+					<td ><div  v-text="kid.con1_phone"></div></td>
+					
+				</tr>
+				<tr>
+					<th class="" >关系</th>
+					<td ><div  v-text="kid.contacts2"></div></td>
+					<th class="" >姓名</th>
+					<td  > <div  v-text="kid.con2_name"></div></td>
+					<th class="" >联系电话</th>		
+					<td ><div  v-text="kid.con2_phone"></div>
+				</tr>
+				<tr>
+					<th class="" colspan="2">入学学费</th>
+					<td  colspan="2"><div  v-text="kid.tuition"></div></td>
+					<th class="">特长班</th> 
+					<td colspan="2" ><div  v-text="kid.s_class_name"></div></td>
+                </tr>
+            </tbody>
+        </table>
+		</div>
+	
+		<div class="divpage uk-widtd-1-1 uk-text-center">
+				<ul class="uk-pagination">
+                <li v-if="! page.has_previous" class="uk-disabled"><span><i class="uk-icon-angle-double-left"></i></span></li>
+                <li v-if="page.has_previous"><a v-on="click: previous()" href=""><i class="uk-icon-angle-double-left"></i></a></li>
+                <li class="uk-active"><span v-text="page.page_index"></span></li>
+                <li v-if="! page.has_next" class="uk-disabled"><span><i class="uk-icon-angle-double-right"></i></span></li>
+                <li v-if="page.has_next"><a v-on="click: next()" href=""><i class="uk-icon-angle-double-right"></i></a></li>
+            </ul>
+        </div>
+ </div>
+{%endblock%}
+             

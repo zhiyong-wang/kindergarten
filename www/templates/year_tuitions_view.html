@@ -1,0 +1,236 @@
+{% extends "base.html" %}
+{% block title %}收费管理{% endblock %}
+{% block head %}
+    {{ super() }}
+	<link href="/static/uikit/css/components/datepicker.css" rel="stylesheet" type="text/css" />
+	<link href="/static/uikit/css/components/form-select.css" rel="stylesheet" type="text/css" />	
+	<script src="/static/uikit/js/components/datepicker.js"></script>
+	<script src="/static/uikit/js/components/form-select.js"></script>
+<script>
+var vm
+class_select=''
+function initVM(data) {
+    vm = new Vue({
+        el: '#div-kids',
+        data: {
+		    page:data.page,
+            tuitions: data.tuitions,
+			k_classes:data.k_classes,
+			class_select:'',
+			start:'',
+            end:'',
+			name:''
+            },
+        methods: {
+		    reload:function(page_index){              				
+			    event.preventDefault();  
+				getJSON('/api/year_tuition/check', {
+				    page: page_index,
+					class_select: this.class_select,
+					name:this.name,
+				}, function (err, results) {
+					if (err) {
+						return fatal(err);
+					}                   					
+					vm.tuitions=results.tuitions;
+					vm.page=results.page;
+					for (i in vm.tuitions){
+					    a=js_date_time(vm.tuitions[i].time)
+					    vm.tuitions[i].time=a.getFullYear()+'年'+(a.getMonth()+1)+'月'	+a.getDate()+'日'				
+						b=js_date_time(vm.tuitions[i].start_month)
+						c=js_date_time(vm.tuitions[i].end_month)
+						vm.tuitions[i].cycle=b.getFullYear()+'年'+(b.getMonth()+1)+'月'+'---'+c.getFullYear()+'年'+(c.getMonth()+1)+'月'
+						}					    
+				});
+		    },
+			previous: function () {
+                this.reload(this.page.page_index - 1);
+            },
+            next: function () {
+                this.reload(this.page.page_index + 1);
+            },	
+			print:function(tuition){
+			    postJSON('/print/year_tuition',{
+					kid_name:tuition.kid_name,
+					kid_id:tuition.kid_id,
+					cycle:tuition.cycle,
+					charge:tuition.paid,					
+				},function (err, r) {				        
+                        if (err) {
+                            return alert(err.message || err.error || err);
+                        }
+						window.open ("/print/charge", "newwindow","toolbar=no, location=no, directories=no, status=no, menubar=no, scrollbars=no, resizable=no, left=200, width=650, height=500") 
+					}
+				 )	
+			
+			},
+            delete_tuition: function (tuition) {			    
+                if (confirm('确认要删除“' + tuition.kid_name + '”的缴费信息?')) { 
+                    url=('/api/year_tuition/delete')
+					postJSON(encodeURI(url),{
+					tuition_id:tuition.id,				
+					}, function (err, r) {
+                        if (err) {
+                            return alert(err.message || err.error || err);
+                        }
+                        vm.reload();
+                    });
+                };
+            }
+			
+			
+        },
+    });
+}
+$(function() {
+	getJSON('/api/year_tuition/check', {
+		page: {{ page_index }},
+		class_select: '',
+		name:'',
+	}, function (err, results) {
+			if (err) {
+				return fatal(err);
+			}
+			for (i in results.tuitions){
+				a=js_date_time(results.tuitions[i].time)
+				results.tuitions[i].time=a.getFullYear()+'年'+(a.getMonth()+1)+'月'	+a.getDate()+'日'				
+				b=js_date_time(results.tuitions[i].start_month)
+				c=js_date_time(results.tuitions[i].end_month)
+				results.tuitions[i].cycle=b.getFullYear()+'年'+(b.getMonth()+1)+'月'+'---'+c.getFullYear()+'年'+(c.getMonth()+1)+'月'
+			}
+			initVM(results);
+			x=document.getElementById("class_select");
+			classes=results.k_classes
+			for(var i=0;i<classes.length;i++){
+				v = classes[i].id; //value
+				name = classes[i].name;
+				opt = new Option(name,v); 
+				x.options.add(opt);
+				}        			
+	});
+});
+//时间转换为时间戳
+function js_strto_time(str_time){
+    var new_str = str_time.replace(/:/g,'-');
+    new_str = new_str.replace(/ /g,'-');
+    var arr = new_str.split("-");
+    var datum = new Date(Date.UTC(arr[0],arr[1]-1,arr[2],arr[3]-8,arr[4],arr[5]));
+    return strtotime = datum.getTime()/1000;
+}
+function js_date_time(unixtime) {
+    var timestr = new Date(parseInt(unixtime) * 1000);
+    return timestr;
+}
+
+      
+</script>
+{% endblock %}
+
+{%block panel%}
+<div class="tm-panel  uk-panel uk-panel-box  ">                        
+	<div class="uk-panel-title">收费管理</div>
+	<div class="uk-panel-li"><a href="/tuition">收取学费</a></div> 
+	<div class="line"></div>
+	<div class="uk-panel-li"><a href="/year_tuition">按年收取学费</a></div> 
+	<div class="line"></div>
+	<br>
+	<div class="uk-panel-li"><a href="/deposit">收取入园押金</a></div> 
+	<div class="line"></div>
+	<div class="uk-panel-li"><a href="/article">收取入园杂费</a></div>  
+	<div class="line"></div>
+	<br>
+	<div class="uk-panel-li"><a href="/tuition/check">个人收费信息明细查询</a></div> 
+	<div class="line"></div>	
+    <div class="uk-panel-li"><a href="/year_tuition/check">按年收取保教费查询</a></div> 
+	<div class="line"></div>	
+    
+	
+</div>
+{%endblock%}
+					
+{% block content %}
+<div class="tit"><a href="/">主页 </a>  》 <a href="">收费管理 </a></div>
+
+<div id="div-kids" class="div-pagemain" >		
+
+
+	<form  class="uk-form uk-form-stacked ">
+	<div class="uk-grid">
+	
+	<div class="uk-width-1-4">
+	<div class="uk-form-row ">
+			<label class="uk-form-label">班级名称:</label>
+			<div class="uk-form-controls  uk-form-controls-text">
+				<select v-model="class_select" id="class_select" v-on="change: reload()" >
+					<option value=""></option>
+				</select>
+		</div>
+	</div>	
+	</div>
+		<div class="uk-width-1-4">
+	<div class="uk-form-row ">
+		<label class="uk-form-label">姓名:</label>
+		<div class="uk-form-controls  uk-form-controls-text">
+			<input id="name" v-model="name" type="text"  placeholder="录入姓名" v-on="change: reload()" >
+		</div>
+	</div>	
+	</div>
+
+
+	</div>
+	</form>
+<hr>
+	
+	<div class="divmain-title">按年收取保教费信息查询</div>		
+	<div class="divcontainer ">
+      
+        <table  class="uk-table uk-table-striped ">
+            <thead>
+                <tr> 
+					
+					<th class="">姓名</th>			
+                    <th class="">数额</th>
+					<th class="">缴费所属期</th>
+                    <th class="">时间</th>
+					<th class="">操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr v-repeat="tuition:tuitions" >
+                    <td>
+                        <div   v-text="tuition.kid_name"></div>
+                    </td>
+					
+					<td>
+                        <div  v-text="tuition.paid"></div>
+                    </td>
+					<td>
+                        <div  v-text="tuition.cycle"></div>
+                    </td>
+					<td>
+                        <div   v-text="tuition.time"></div>
+                    </td> 
+					<td>                        
+						<a  href="#0" v-on="click:print(tuition)">打印收据<i class=""></i>
+						<a  href="#0" v-on="click:delete_tuition(tuition)">回退<i class=""></i>
+
+                    </td>
+					
+										
+                </tr>
+            </tbody>
+        </table>
+		</div>	
+			<div class="divpage uk-width-1-1 uk-text-center">
+				<ul class="uk-pagination">
+                <li v-if="! page.has_previous" class="uk-disabled"><span><i class="uk-icon-angle-double-left"></i></span></li>
+                <li v-if="page.has_previous"><a v-on="click: previous()" href=""><i class="uk-icon-angle-double-left"></i></a></li>
+                <li class="uk-active"><span v-text="page.page_index"></span></li>
+                <li v-if="! page.has_next" class="uk-disabled"><span><i class="uk-icon-angle-double-right"></i></span></li>
+                <li v-if="page.has_next"><a v-on="click: next()" href=""><i class="uk-icon-angle-double-right"></i></a></li>
+            </ul>
+        </div>	
+
+ </div>
+{%endblock%}
+             

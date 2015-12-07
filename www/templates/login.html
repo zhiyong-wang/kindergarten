@@ -1,0 +1,79 @@
+<html>
+    <head>
+        <title>登陆</title>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+        <link rel="stylesheet" type="text/css" href="/static/css/login.css" />
+		<script type="text/javascript" src="/static/js/jquery.js"></script>
+		<script type="text/javascript" src="/static/js/md5.js"></script>
+		<script type="text/javascript" src="/static/js/vue.js"></script>
+		<script type="text/javascript" src="/static/js/wang.js"></script>
+<script>
+$(function () {
+	var vm = new Vue({
+		el: '#login',
+		data: {
+			user: '',
+			password: '',
+			remember:false,
+		},
+		methods: {		    
+			submit: function (event) {
+				event.preventDefault();
+                if (! this.user.trim()) {
+                    return alert('请输入用户名！');
+                }
+                if (this.password.length < 6) {
+                    return alert('口令长度至少为6个字符！');
+                }
+				postJSON('/api/login',{
+				user:this.user,
+				remember: this.remember,
+				password: CryptoJS.MD5(this.password).toString(),
+				}, function (err, r) {
+					if (err) {
+						showError(err);
+					}
+					else {					     
+					    if (r.is_login!='y'){
+							}
+						else{
+						    return location.assign('/kids')};
+					}
+				});
+			}
+		}
+	});
+});
+
+</script>
+    </head>
+    <body>
+		<div class="wrapper">
+			<h1>新雨幼儿园管理系统</h1>
+			<h2><span></span></h2>
+			<div class="content">
+				<div id="form_wrapper" class="form_wrapper">
+					<form class="login active" id="login" v-on="submit: submit">
+						<h3>登录</h3>
+						<div>
+							<label>用户名:</label>
+							<input type="text" v-model="user" />
+						</div>
+						<div>
+							<label>密码: </label>
+							<input type="password" v-model="password"  />
+						</div>
+						<div class="bottom">
+							<div class="remember"><input type="checkbox" v-model="remember"/><span>保持登录状态</span></div>
+							<input type="submit" value="登录"></input>
+							<div class="clear"></div>
+						</div>
+					</form>
+
+				</div>
+				<div class="clear"></div>
+			</div>
+		</div>
+
+    </body>
+</html>

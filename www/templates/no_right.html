@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% block title %}收费管理{% endblock %}
+{% block head %}
+    {{ super() }}
+	<link href="/static/uikit/css/components/datepicker.css" rel="stylesheet" type="text/css" />
+	<link href="/static/uikit/css/components/form-select.css" rel="stylesheet" type="text/css" />	
+	<script src="/static/uikit/js/components/datepicker.js"></script>
+	<script src="/static/uikit/js/components/form-select.js"></script>
+<script>
+var vm
+class_select=''
+function initVM(data) {
+    vm = new Vue({
+        el: '#div-kids',
+        data: {
+		    page:data.page,
+            tuitions: data.tuitions,
+			k_classes:data.k_classes,
+			class_select:'',
+			start:'',
+            end:'',
+			name:''
+            },
+        methods: {
+		    reload:function(page_index){              				
+			    event.preventDefault();  
+				getJSON('/api/year_tuition/check', {
+				    page: page_index,
+					class_select: this.class_select,
+					name:this.name,
+				}, function (err, results) {
+					if (err) {
+						return fatal(err);
+					}                   					
+					vm.tuitions=results.tuitions;
+					vm.page=results.page;
+					for (i in vm.tuitions){
+					    a=js_date_time(vm.tuitions[i].time)
+					    vm.tuitions[i].time=a.getFullYear()+'年'+(a.getMonth()+1)+'月'	+a.getDate()+'日'				
+						b=js_date_time(vm.tuitions[i].start_month)
+						c=js_date_time(vm.tuitions[i].end_month)
+						vm.tuitions[i].cycle=b.getFullYear()+'年'+(b.getMonth()+1)+'月'+'---'+c.getFullYear()+'年'+(c.getMonth()+1)+'月'
+						}					    
+				});
+		    },
+			previous: function () {
+                this.reload(this.page.page_index - 1);
+            },
+            next: function () {
+                this.reload(this.page.page_index + 1);
+            },	
+			print:function(tuition){
+			    postJSON('/print/year_tuition',{
+					kid_name:tuition.kid_name,
+					kid_id:tuition.kid_id,
+					cycle:tuition.cycle,
+					charge:tuition.paid,					
+				},function (err, r) {				        
+                        if (err) {
+                            return alert(err.message || err.error || err);
+                        }
+						window.open ("/print/charge", "newwindow","toolbar=no, location=no, directories=no, status=no, menubar=no, scrollbars=no, resizable=no, left=200, width=650, height=500") 
+					}
+				 )	
+			
+			},
+            delete_tuition: function (tuition) {			    
+                if (confirm('确认要删除“' + tuition.kid_name + '”的缴费信息?')) { 
+                    url=('/api/year_tuition/delete')
+					postJSON(encodeURI(url),{
+					tuition_id:tuition.id,				
+					}, function (err, r) {
+                        if (err) {
+                            return alert(err.message || err.error || err);
+                        }
+                        vm.reload();
+                    });
+                };
+            }
+			
+			
+        },
+    });
+}
+$(function() {
+	getJSON('/api/year_tuition/check', {
+		page: {{ page_index }},
+		class_select: '',
+		name:'',
+	}, function (err, results) {
+			if (err) {
+				return fatal(err);
+			}
+			for (i in results.tuitions){
+				a=js_date_time(results.tuitions[i].time)
+				results.tuitions[i].time=a.getFullYear()+'年'+(a.getMonth()+1)+'月'	+a.getDate()+'日'				
+				b=js_date_time(results.tuitions[i].start_month)
+				c=js_date_time(results.tuitions[i].end_month)
+				results.tuitions[i].cycle=b.getFullYear()+'年'+(b.getMonth()+1)+'月'+'---'+c.getFullYear()+'年'+(c.getMonth()+1)+'月'
+			}
+			initVM(results);
+			x=document.getElementById("class_select");
+			classes=results.k_classes
+			for(var i=0;i<classes.length;i++){
+				v = classes[i].id; //value
+				name = classes[i].name;
+				opt = new Option(name,v); 
+				x.options.add(opt);
+				}        			
+	});
+});
+//时间转换为时间戳
+function js_strto_time(str_time){
+    var new_str = str_time.replace(/:/g,'-');
+    new_str = new_str.replace(/ /g,'-');
+    var arr = new_str.split("-");
+    var datum = new Date(Date.UTC(arr[0],arr[1]-1,arr[2],arr[3]-8,arr[4],arr[5]));
+    return strtotime = datum.getTime()/1000;
+}
+function js_date_time(unixtime) {
+    var timestr = new Date(parseInt(unixtime) * 1000);
+    return timestr;
+}
+
+      
+</script>
+{% endblock %}
+
+{%block panel%}
+<div class="tit"><a href="/">主页 </a> </div>
+
+<div id="div-kids" class="div-pagemain" >		
+
+
+
+<hr>
+	
+	<div class="divmain-title">抱歉，你没有此权限！</div>		
+	
+
+ </div>
+{%endblock%}
+					
+{% block content %}
+
+{%endblock%}
+             

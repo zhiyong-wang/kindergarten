@@ -1,0 +1,232 @@
+{% extends "base.html" %}
+{% block title %}幼儿管理{% endblock %}
+{% block head %}
+    {{ super() }}
+	
+<script>
+var vm
+class_select=''
+function initVM(data) {
+    vm = new Vue({
+        el: '#div-kids',
+        data: {
+            kid: data.kid,
+			discount:data.discount,
+			begindate:data.begindate,
+			class_select:'',
+			name:'',
+			start:'',
+			end:'',
+			cycle:'6',
+			charge:'',
+			start_time:'',
+			end_time:'',
+             },
+        methods: {
+		    reload:function(index){
+			    event.preventDefault();
+				getJSON('/api/year_tuition', {
+					class_select: this.class_select,
+					name:this.name,
+				}, function (err, results) {
+					if (err) {
+						return fatal(err);
+					}
+					vm.kid=results.kid;					
+                    vm.count();					
+				});
+		    },
+			count:function(){
+				if (vm.kid!=null){
+					a=js_date_time(vm.kid.month)
+					start_year=a.getFullYear()
+					start_month=a.getMonth()+2
+					if (start_month==13){
+						start_month=1
+						start_year=start_year+1
+					}
+					end_year=start_year
+					end_month=start_month
+					for (i=1;i<vm.cycle;i++){
+					   end_month=end_month+1
+					   if (end_month==13){
+							end_month=1;
+							end_year=end_year+1
+						}
+					}	
+					vm.start=start_year+'年'+start_month+'月'
+					vm.start_time=js_strto_time(start_year+'-'+start_month+'-'+vm.begindate+' 00:00:00')
+					vm.end=end_year+'年'+end_month+'月'
+					vm.charge=vm.kid.tuition*vm.cycle*vm.discount
+					vm.end_time=js_strto_time(end_year+'-'+end_month+'-'+vm.begindate+' 00:00:00')
+				}
+			},
+			submit:function (kid){
+				var r=confirm("收取"+kid.name+"保教费"+vm.charge+"元!");
+				if (r==true) {
+					postJSON('/api/year_tuition/add',{
+					kid_id:kid.id,
+					start:vm.start_time,
+					end:vm.end_time,					
+					paid:vm.charge,					
+				},function (err, r) {
+                        if (err) {
+                            return alert(err.message || err.error || err);
+                        }						
+				}
+				)
+				var d=confirm("是否打印收据?");
+				if(d==true){vm.print(kid)}
+				vm.reload();
+				
+				}
+				 	
+			},
+			print:function(kid){
+				postJSON('/print/year_tuition',{
+					kid_name:kid.name,
+					kid_id:kid.id,
+					cycle:vm.start+'---'+vm.end,
+					charge:vm.charge,					
+				},function (err, r) {                        				
+                        if (err) {	
+                            return alert(err.message || err.error || err);
+                        }						
+						window.open ("/print/charge", "newwindow","toolbar=no, location=no, directories=no, status=no, menubar=no, scrollbars=no, resizable=no, left=200, width=650, height=500") 
+					}
+			    )
+			},
+			
+        },
+    });
+}
+$(function() {
+	getJSON('/api/year_tuition', {
+		class_select: class_select,
+		name:''
+	}, function (err, results) {
+			if (err) {
+				return fatal(err);
+			}		    
+            initVM(results);
+			x=document.getElementById("class_select");
+			classes=results.k_classes
+			for(var i=0;i<classes.length;i++){
+				v = classes[i].id; //value
+				name = classes[i].name;
+				opt = new Option(name,v); 
+				x.options.add(opt);
+				}
+	});
+	});
+function js_strto_time(str_time){
+    var new_str = str_time.replace(/:/g,'-');
+    new_str = new_str.replace(/ /g,'-');
+    var arr = new_str.split("-");
+    var datum = new Date(Date.UTC(arr[0],arr[1]-1,arr[2],arr[3]-8,arr[4],arr[5]));
+    return strtotime = datum.getTime()/1000;
+}
+function js_date_time(unixtime) {
+    var timestr = new Date(parseInt(unixtime) * 1000);
+    return timestr;
+}
+
+</script>
+
+{% endblock %}
+
+{%block panel%}
+<div class="tm-panel  uk-panel uk-panel-box  ">                        
+	<div class="uk-panel-title">收费管理</div>
+	<div class="uk-panel-li"><a href="/tuition">收取学费</a></div> 
+	<div class="line"></div>
+	<div class="uk-panel-li"><a href="/year_tuition">按年收取学费</a></div> 
+	<div class="line"></div>
+	<br>
+	<div class="uk-panel-li"><a href="/deposit">收取入园押金</a></div> 
+	<div class="line"></div>
+	<div class="uk-panel-li"><a href="/article">收取入园杂费</a></div>  
+	<div class="line"></div>
+	<br>
+	<div class="uk-panel-li"><a href="/tuition/check">个人收费信息明细查询</a></div> 
+	<div class="line"></div>	
+    <div class="uk-panel-li"><a href="/year_tuition/check">按年收取保教费查询</a></div> 
+	<div class="line"></div>	
+    
+	
+</div>
+{%endblock%}
+					
+{% block content %}
+<div class="tit"><a href="/">主页 </a>  》 <a href="">收费管理 </a></div>
+
+<div id="div-kids" class="div-pagemain" >		
+
+
+	<form v-on="submit: submit(kid)" class="uk-form uk-form-horizontal ">
+
+
+	<div class="uk-form-row ">
+		<label class="uk-form-label">班级名称:</label>
+		<div class="uk-form-controls  uk-form-controls-text">
+			<select v-model="class_select" id="class_select" v-on="change:reload()">
+				<option value=""></option>
+				<option value="未分配">未分配</option>
+			</select>
+		</div>	
+	</div>
+	
+	<div class="uk-form-row ">
+		<label class="uk-form-label" >姓名:</label>
+		<div class="uk-form-controls ">
+			<input v-model="name" v-on="change:reload()" type="text"  placeholder="名字" >
+		</div>
+	</div>
+
+	<div class="uk-form-row">
+		<label class="uk-form-label">缴费周期:</label>
+		<div class="uk-form-controls  uk-form-controls-text"> 						
+			<select v-model="cycle" v-on="change:count()">
+				<option value="12">年</option>
+				<option value="6">半年</option>				
+			</select>						
+		</div>
+    </div>
+
+	<div class="uk-form-row">
+		<label class="uk-form-label">保教费标准:</label>
+		<div class="uk-form-controls  uk-form-controls-text"> 						
+			<input v-model="kid.tuition"  type="text"  >		
+		</div>
+    </div>
+	
+	<div class="uk-form-row">
+		<label class="uk-form-label">缴费所属期:</label>
+		<div class="uk-form-controls  uk-form-controls-text"> 						
+			<input v-model="start"  type="text"  >--<input v-model="end"  type="text"  >	
+		</div>
+    </div>	
+	
+	<div class="uk-form-row">
+		<label class="uk-form-label">折扣:</label>
+		<div class="uk-form-controls  uk-form-controls-text"> 						
+			<input v-model="discount"  type="text"  >		
+		</div>
+    </div>
+	
+	<div class="uk-form-row">
+		<label class="uk-form-label">应缴保教费:</label>
+		<div class="uk-form-controls  uk-form-controls-text"> 						
+			<input v-model="charge"  type="text"  >		
+		</div>
+    </div>	
+	<div class="divbutton">
+         <button type="submit" class="uk-button uk-button-primary"> 加入</button>
+    </div>
+	
+</form>
+	
+		
+ </div>
+{%endblock%}
+             

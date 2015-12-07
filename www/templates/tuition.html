@@ -1,0 +1,391 @@
+{% extends "base.html" %}
+{% block title %}收费管理{% endblock %}
+{% block head %}
+    {{ super() }}
+<script>
+var vm
+var begindate=1
+class_select=''
+function initVM(data) {
+    vm = new Vue({
+        el: '#div-kids',
+        data: {
+		    page:data.page,
+            kids: data.kids,
+			k_classes:data.k_classes,
+			class_select:'',
+			workinmonth:30,
+			ispaid:'',
+			month:'',
+			now_month:'',
+			last_month:'',
+			foodcosts:data.foodcosts,
+			special_charges:data.special_charges
+            },
+        methods: {
+		    reload:function(page_index){
+			    event.preventDefault();
+				now_last=this.month.split("-")	
+				vm.workinmonth=days_in_month(now_last[1])
+				getJSON('/api/tuition', {
+					page: page_index,
+					class_select: this.class_select,
+					lastmonth:now_last[1],
+					nowmonth:now_last[0],
+					ispaid:this.ispaid,
+				}, function (err, results) {
+					if (err) {
+						return fatal(err);
+					}
+					vm.special_charges=results.special_charges
+					a=js_date_time(now_last[0])
+					vm.now_month=a.getFullYear()+'年'+(a.getMonth()+1)+'月'
+					a=js_date_time(now_last[1])
+					vm.last_month=a.getFullYear()+'年'+(a.getMonth()+1)+'月'					
+					colnum=vm.special_charges.length+3
+					$("#col").remove();
+					txt="<th id='col' colspan='"+colnum+"'>"+vm.now_month+"应收费用</th>"
+					$("#table_1").after(txt);
+					
+					$("#col_2").remove();
+					txt="<th id='col_2' colspan='4'>"+vm.last_month+"应退费用</th>"
+					$("#col").after(txt);
+					
+                    					
+					vm.kids=results.kids;
+					vm.page=results.page;
+					vm.foodcosts=results.foodcosts;
+					vm.special_charges=results.special_charges
+					for (i in vm.kids){
+					    vm.kids[i].workinmonth=vm.workinmonth
+						if  (vm.kids[i].paid==0){
+							if (vm.workinmonth-vm.kids[i].absence<9){
+								vm.kids[i].tuition_back=(vm.kids[i].tuition/2).toFixed(0)
+								}
+							else{
+								vm.kids[i].tuition_back=0
+								}
+							alert(vm.kids[i].lastmonth)
+							if (vm.kids[i].lastmonth!=null){
+                                vm.kids[i].tuition=0
+								}					
+							vm.kids[i].foodcosts=vm.foodcosts
+							vm.kids[i].foodcosts_back=Math.round(vm.foodcosts/vm.workinmonth*vm.kids[i].absence)
+						}	
+						vm.kids[i].total=vm.kids[i].tuition+vm.kids[i].foodcosts						
+						for (j in vm.special_charges){
+							vm.kids[i].total=vm.kids[i].total+vm.special_charges[j].charge
+						}				
+						vm.kids[i].charge=vm.kids[i].total-vm.kids[i].tuition_back-vm.kids[i].foodcosts_back
+							
+					}						    
+				});
+		    },
+            previous: function () {
+                this.reload(this.page.page_index - 1);
+            },
+            next: function () {
+                this.reload(this.page.page_index + 1);
+            },			
+			charge:function (kid){
+				var r=confirm("收取"+kid.name+"学费"+kid.charge+"元!");
+				if (r==true)
+				  { now_last=this.month.split("-")
+				  url=('/api/tuition/add')
+					postJSON(encodeURI(url),{
+					kid_id:kid.id,
+					month:now_last[0],
+					now_month:vm.now_month,
+					last_month:vm.last_month,
+					tuition:kid.tuition,
+					tuition_back:kid.tuition_back,
+					foodcosts:vm.foodcosts,
+					foodcosts_back:kid.foodcosts_back,
+					special_charges:vm.special_charges,
+				},function (err, r) {
+                        if (err) {
+                            return alert(err.message || err.error || err);
+                        }						
+				 })
+				 r=confirm("是否打印收据?");
+				if(r==true){
+				vm.print(kid)
+				vm.reload();}}
+			},				
+			print:function(kid){
+			    now_last=this.month.split("-")
+				a=js_date_time(now_last[0])
+				now_month=a.getFullYear()+'年'+(a.getMonth()+1)+'月'
+				a=js_date_time(now_last[1])
+				last_month=a.getFullYear()+'年'+(a.getMonth()+1)+'月'
+			    postJSON('/print/tuition',{
+					kid_id:kid.id,
+					kid_name:kid.name,
+					k_class:kid.k_class,
+					absence:kid.absence,
+					month:now_month,
+					last_month:last_month,
+					tuition:kid.tuition,
+					foodcosts:vm.foodcosts,
+					tuition_back:kid.tuition_back,
+					foodcosts_back:kid.foodcosts_back,
+					special_charges:vm.special_charges,
+				},function (err, r) {
+                        if (err) {
+                            return alert(err.message || err.error || err);
+                        }
+						window.open ("/print/charge", "newwindow","toolbar=no, location=no, directories=no, status=no, menubar=no, scrollbars=no, resizable=no, left=200, width=650, height=500") 
+					}
+				 )	
+			
+			},
+            delete_tuition: function (kid) {
+			    now_last=this.month.split("-")
+                if (confirm('确认要删除“' + kid.name + '”的缴费信息?')) { 
+                    url=('/api/tuition/delete')
+					postJSON(encodeURI(url),{
+					kid_id:kid.id,
+					month:now_last[0],					
+					}, function (err, r) {
+                        if (err) {
+                            return alert(err.message || err.error || err);
+                        }
+                        vm.reload();
+                    });
+                };
+            }
+        },
+    });
+}
+function days_in_month(start){
+	startday=new Date(parseInt(start) * 1000);
+	days=new Array;
+	month=startday.getMonth()+1
+	if (month==2){x=28}
+	else{if (month==1|month==3|month==5|month==7|month==8|month==10|month==12){x=31}
+		else{x=30}		}
+	workinmonth=x	
+	for(i=0;i<x;i++){
+		days[i]=new Date
+		days[i].setFullYear(startday.getFullYear())
+		days[i].setMonth(startday.getMonth())
+		days[i].setDate(startday.getDate()+i)
+		if(days[i].getDay()==0|days[i].getDay()==6){workinmonth=workinmonth-1}	}
+	return workinmonth   //返回应出勤天数
+}
+$(function() {
+	getJSON('/api/tuition', {
+		page: {{ page_index }},
+		class_select: class_select,
+	}, function (err, results) {
+			if (err) {
+				return fatal(err);
+			}
+			initVM(results);			
+			x=document.getElementById("class_select");
+			classes=results.k_classes
+			for(var i=0;i<classes.length;i++){
+				v = classes[i].id; //value
+				name = classes[i].name;
+				opt = new Option(name,v); 
+				x.options.add(opt);
+				}
+				
+			x=document.getElementById("month");
+			var date=new Date()
+			year=date.getFullYear()
+			now_date=date.getDate()
+			if (now_date>begindate){month=date.getMonth()+2} 
+			else {month=date.getMonth()+1}
+			for(var i=0;i<12;i++){
+				lastmonth=month-1
+				srt_date_nowmonth=year+'-'+month+'-'+begindate+' 00:00:00'						
+				srt_month=year+'年'+month+'月'
+				if (lastmonth==0){year=year-1;lastmonth=12}			
+				srt_date_lastmonth=year+'-'+lastmonth+'-'+begindate+' 00:00:00'		
+				v = js_strto_time(srt_date_nowmonth)+'-'+js_strto_time(srt_date_lastmonth); //value,,本月起始的时间戳
+				name =srt_month;
+				if (i==0){opt = new Option(name,v,true,true);vm.month=v}
+				else{opt = new Option(name,v);}
+				x.options.add(opt);
+				month=month-1
+				if (month==0){month=12}		
+				}
+        			
+	});
+});
+//时间转换为时间戳
+function js_strto_time(str_time){
+    var new_str = str_time.replace(/:/g,'-');
+    new_str = new_str.replace(/ /g,'-');
+    var arr = new_str.split("-");
+    var datum = new Date(Date.UTC(arr[0],arr[1]-1,arr[2],arr[3]-8,arr[4],arr[5]));
+    return strtotime = datum.getTime()/1000;
+}
+function js_date_time(unixtime) {
+    var timestr = new Date(parseInt(unixtime) * 1000);
+    return timestr;
+}
+	
+      
+</script>
+{% endblock %}
+
+{%block panel%}
+<div class="tm-panel  uk-panel uk-panel-box  ">                        
+	<div class="uk-panel-title">收费管理</div>
+	<div class="uk-panel-li"><a href="/tuition">收取学费</a></div> 
+	<div class="line"></div>
+	<div class="uk-panel-li"><a href="/year_tuition">按年收取学费</a></div> 
+	<div class="line"></div>
+	<br>
+	<div class="uk-panel-li"><a href="/deposit">收取入园押金</a></div> 
+	<div class="line"></div>
+	<div class="uk-panel-li"><a href="/article">收取入园杂费</a></div>  
+	<div class="line"></div>
+	<br>
+	<div class="uk-panel-li"><a href="/tuition/check">个人收费信息明细查询</a></div> 
+	<div class="line"></div>	
+    <div class="uk-panel-li"><a href="/year_tuition/check">按年收取保教费查询</a></div> 
+	<div class="line"></div>	
+    
+	
+</div>
+{%endblock%}
+					
+{% block content %}
+<div class="tit"><a href="/">主页 </a>  》 <a href="">收费管理 </a></div>
+
+<div id="div-kids" class="div-pagemain" >		
+
+
+	<form  class="uk-form uk-form-stacked ">
+	<div class="uk-grid">
+	
+	<div class="uk-width-1-4">
+	<div class="uk-form-row ">
+			<label class="uk-form-label">班级名称:</label>
+			<div class="uk-form-controls  uk-form-controls-text">
+				<select v-model="class_select" id="class_select" v-on="change:reload({{ page_index }})">
+					<option value=""></option>
+				</select>
+		</div>
+	</div>	
+	</div>
+	
+	<div class="uk-width-1-4">
+	<div class="uk-form-row ">
+		<label class="uk-form-label">月份:</label>
+		<div class="uk-form-controls  uk-form-controls-text">
+			<select v-model="month" id="month" v-on="change:reload({{ page_index }})">
+			</select>
+	</div>
+	</div>	
+	</div>
+  
+	<div class="uk-width-1-4">
+	<div class="uk-form-row ">
+		<label class="uk-form-label">是否收费:</label>
+		<div class="uk-form-controls  uk-form-controls-text">
+			<select v-model="ispaid" id="ispaid" v-on="change:reload({{ page_index }})">
+				<option value="" ></option>
+				<option value="已交">已交费</option>
+				<option value="未交">未交费</option>
+			</select>
+		</div>
+	</div>	
+	</div>
+
+	</div>
+	</form>
+<hr>
+	
+	<div class="divmain-title">收取保教费</div>		
+	<div class="divcontainer uk-overflow-container">
+      
+        <table id="kid_table" class="uk-table uk-table-striped  uk-text-nowrap">
+            <thead>
+			        <tr>
+                    <th id="table_1" rowspan='2' class="">姓名</th>  
+					<th id='col' colspan='3'>本月应收费用</th>
+                    
+					<th id='col_2' colspan='4'>上月应退费用</th>			
+					<th class="" rowspan='2'>应收费用合计</th> 	
+					<th class="" rowspan='2'>已收费用</th>										
+					<th class="" rowspan='2'>操作</th>
+                </tr>
+                <tr> 
+					<th class="">保教费</th>
+					<th class="">餐费</th>	
+					<th div v-repeat="special_charge: special_charges"> 
+					<div   v-text="special_charge.chargename"> </div></th>
+					<th class="">合计</th>	
+                    
+					<th class="">应出勤天数</th>
+					<th class="">缺勤天数</th>					
+                    <th class="">应退保育费</th>				
+                    <th class="">应退餐费</th>					
+
+                </tr>
+            </thead>
+            <tbody>
+                <tr v-repeat="kid: kids" >
+                    <td>
+                        <div   v-text="kid.name"></div>
+                    </td>                   
+
+					 <td>
+                        <div   v-text="kid.tuition"></div>
+                    </td>
+					
+					 <td>
+                        <div  v-text="foodcosts"></div>
+                    </td>
+					<td  v-repeat="special_charge: special_charges"> 
+					 <div   v-text="special_charge.charge"> </div>
+					 </td>	
+					 <td>
+                        <div  v-text="kid.total"></div>
+                    </td>					
+					
+					<td>
+                        <div   v-text="kid.workinmonth"></div>
+                    </td>	
+					<td>
+                        <div   v-text="kid.absence "></div>
+                    </td>
+					<td>
+                        <div   v-text="kid.tuition_back"></div>
+                    </td>
+					<td>
+                        <div   v-text="kid.foodcosts_back"></div>
+                    </td>
+					<td>
+                        <div   v-text="kid.charge"></div>
+                    </td>
+					<td>
+                        <div   v-text="kid.paid"></div>
+                    </td>
+                    <td>                        
+						<a v-if="kid.paid>0" href="#0" v-on="click:print(kid)">打印收据<i class=""></i>
+						<a v-if="kid.paid>0" href="#0" v-on="click:delete_tuition(kid)">回退<i class=""></i>
+						<a v-if="kid.paid==0" href="#0" v-on="click:charge(kid)">收费<i class=""></i>
+
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+		</div>	
+		
+		<div class="divpage uk-width-1-1 uk-text-center">
+				<ul class="uk-pagination">
+                <li v-if="! page.has_previous" class="uk-disabled"><span><i class="uk-icon-angle-double-left"></i></span></li>
+                <li v-if="page.has_previous"><a v-on="click: previous()" href=""><i class="uk-icon-angle-double-left"></i></a></li>
+                <li class="uk-active"><span v-text="page.page_index"></span></li>
+                <li v-if="! page.has_next" class="uk-disabled"><span><i class="uk-icon-angle-double-right"></i></span></li>
+                <li v-if="page.has_next"><a v-on="click: next()" href=""><i class="uk-icon-angle-double-right"></i></a></li>
+            </ul>
+        </div>
+ </div>
+{%endblock%}
+             

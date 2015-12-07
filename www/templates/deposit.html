@@ -1,0 +1,243 @@
+{% extends "base.html" %}
+{% block title %}收费管理{% endblock %}
+{% block head %}
+    {{ super() }}
+<script>
+var vm
+var begindate=1
+class_select=''
+function initVM(data) {
+    vm = new Vue({
+        el: '#div-kids',
+        data: {
+		    page:data.page,
+            kids: data.kids,
+			k_classes:data.k_classes,
+			class_select:'',
+			name:'',
+			ispaid:'',
+            },
+        methods: {
+		    reload:function(page_index){
+			    event.preventDefault();
+				getJSON('/api/deposit', {
+					page: page_index,
+					class_select: this.class_select,
+					name:this.name,
+					ispaid:this.ispaid,
+				}, function (err, results) {
+					if (err) {
+						return fatal(err);
+					}					                    					
+					vm.kids=results.kids;
+					vm.page=results.page;
+										    
+				});
+		    },
+            previous: function () {
+                this.reload(this.page.page_index - 1);
+            },
+            next: function () {
+                this.reload(this.page.page_index + 1);
+            },			
+			charge:function (kid){
+				var r=confirm("收取"+kid.name+"入园押金"+kid.tuition+"元!");
+				if (r==true)
+				  { 
+				  url=('/api/deposit/add')
+					postJSON(encodeURI(url),{
+					kid_id:kid.id,
+					tuition:kid.tuition,
+				},function (err, r) {
+                        if (err) {
+                            return alert(err.message || err.error || err);
+                        }
+						d=confirm("是否打印收据?");
+						if(d==true){vm.print(kid)}
+						vm.reload();
+				 }
+				 )}
+			},				
+			print:function(kid){			   
+					postJSON('/print/deposit',{
+						kid_id:kid.id,
+						kid_name:kid.name,
+						cycle:'',
+						deposit:kid.tuition,					
+					},function (err, d) {
+							if (err) {
+								return alert(err.message || err.error || err);
+							}
+							window.open ("/print/charge", "newwindow","toolbar=no, location=no, directories=no, status=no, menubar=no, scrollbars=no, resizable=no, left=200, width=650, height=500") 
+						}
+					 )	
+				
+				},	
+			
+            delete_tuition: function (kid) {
+                if (confirm('确认要删除“' + kid.name + '”的缴费信息?')) { 
+                    url=('/api/deposit/delete')
+					postJSON(encodeURI(url),{
+					kid_id:kid.id,				
+					}, function (err, r) {
+                        if (err) {
+                            return alert(err.message || err.error || err);
+                        }
+                        vm.reload();
+                    });
+                };
+            }
+        },
+    });
+}
+
+$(function() {
+	getJSON('/api/deposit', {
+		page: {{ page_index }},
+		class_select: class_select,
+		name:''
+	}, function (err, results) {
+			if (err) {
+				return fatal(err);
+			}						
+			for (i in results.kids){
+				if (results.kids[i].article==0){				
+					results.kids[i].article=results.article
+					}	
+				results.kids[i].total=results.kids[i].tuition+results.kids[i].article									
+				}
+			initVM(results);	
+			x=document.getElementById("class_select");
+			classes=results.k_classes
+			for(var i=0;i<classes.length;i++){
+				v = classes[i].id; //value
+				name = classes[i].name;
+				opt = new Option(name,v); 
+				x.options.add(opt);
+				}
+        			
+	});
+});
+
+function openwin() { 
+　　window.open ("/print", "newwindow", "height=900, width=600, toolbar =yes, menubar=yes, scrollbars=no, resizable=no, location=yes, status=yes") 
+} 	
+      
+</script>
+{% endblock %}
+
+{%block panel%}
+<div class="tm-panel  uk-panel uk-panel-box  ">                        
+	<div class="uk-panel-title">收费管理</div>
+	<div class="uk-panel-li"><a href="/tuition">收取学费</a></div> 
+	<div class="line"></div>
+	<div class="uk-panel-li"><a href="/year_tuition">按年收取学费</a></div> 
+	<div class="line"></div>
+	<br>
+	<div class="uk-panel-li"><a href="/deposit">收取入园押金</a></div> 
+	<div class="line"></div>
+	<div class="uk-panel-li"><a href="/article">收取入园杂费</a></div>  
+	<div class="line"></div>
+	<br>
+	<div class="uk-panel-li"><a href="/tuition/check">个人收费信息明细查询</a></div> 
+	<div class="line"></div>	
+    <div class="uk-panel-li"><a href="/year_tuition/check">按年收取保教费查询</a></div> 
+	<div class="line"></div>	
+    
+	
+</div>
+{%endblock%}
+					
+{% block content %}
+<div class="tit"><a href="/">主页 </a>  》 <a href="">收费管理 </a></div>
+
+<div id="div-kids" class="div-pagemain" >		
+
+
+	<form  class="uk-form uk-form-stacked ">
+	<div class="uk-grid">
+	
+	<div class="uk-width-1-4">
+	<div class="uk-form-row ">
+			<label class="uk-form-label">班级名称:</label>
+			<div class="uk-form-controls  uk-form-controls-text">
+				<select v-model="class_select" id="class_select" v-on="change:reload({{ page_index }})">
+					<option value=""></option>
+				</select>
+		</div>
+	</div>	
+	</div>
+	
+	<div class="uk-width-1-4">
+	<div class="uk-form-row ">
+		<label class="uk-form-label">姓名:</label>
+		<div class="uk-form-controls  uk-form-controls-text">
+			<input v-model="name" id="month" v-on="change:reload({{ page_index }})"></input>
+	</div>
+	</div>	
+	</div>
+  
+	<div class="uk-width-1-4">
+	<div class="uk-form-row ">
+		<label class="uk-form-label">是否收费:</label>
+		<div class="uk-form-controls  uk-form-controls-text">
+			<select v-model="ispaid" id="ispaid" v-on="change:reload({{ page_index }})">
+				<option value="" ></option>
+				<option value="已交">已交费</option>
+				<option value="未交">未交费</option>
+			</select>
+		</div>
+	</div>	
+	</div>
+
+	</div>
+	</form>
+<hr>
+	
+	<div class="divmain-title">入学押金收取信息</div>		
+	<div class="divcontainer uk-overflow-container">
+      
+        <table id="tuition_table" class="uk-table uk-table-striped  uk-text-nowrap">
+            <thead>
+                <tr> 
+					<th class="">姓名</th>
+					<th class="">入学押金</th>	 
+ 					<th class="">已收</th> 
+					<th class="">操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr v-repeat="kid: kids" >
+                    <td>
+                        <div   v-text="kid.name"></div>
+                    </td>
+					<td>
+                        <div   v-text="kid.tuition"></div>
+                    </td>					
+					<td>
+                        <div  v-text="kid.paid"></div>
+					</td>
+					
+                    <td>                        
+						<a v-if="kid.paid>0" href="#0" v-on="click:print(kid)">打印收据<i class=""></i>
+						<a v-if="kid.paid>0" href="#0" v-on="click:delete_tuition(kid)">回退<i class=""></i>
+						<a v-if="kid.paid==0" href="#0" v-on="click:charge(kid)">收费<i class=""></i>
+
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+		</div>	
+		
+		<div class="divpage uk-width-1-1 uk-text-center">
+				<ul class="uk-pagination">
+                <li v-if="! page.has_previous" class="uk-disabled"><span><i class="uk-icon-angle-double-left"></i></span></li>
+                <li v-if="page.has_previous"><a v-on="click: previous()" href=""><i class="uk-icon-angle-double-left"></i></a></li>
+                <li class="uk-active"><span v-text="page.page_index"></span></li>
+                <li v-if="! page.has_next" class="uk-disabled"><span><i class="uk-icon-angle-double-right"></i></span></li>
+                <li v-if="page.has_next"><a v-on="click: next()" href=""><i class="uk-icon-angle-double-right"></i></a></li>
+            </ul>
+        </div>
+ </div>
+{%endblock%}
+             

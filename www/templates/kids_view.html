@@ -1,0 +1,228 @@
+{% extends "base.html" %}
+{% block title %}幼儿管理{% endblock %}
+{% block head %}
+    {{ super() }}
+	
+<script>
+var vm
+class_select=''
+function initVM(data) {
+    vm = new Vue({
+        el: '#div-kids',
+        data: {
+		    page:data.page,
+            kids: data.kids,
+			k_classes:data.k_classes,
+			s_classes:data.s_classes,
+			class_select:'',
+			type:'常规班',
+			name:'',
+             },
+        methods: {
+		    reload:function(index){
+			    event.preventDefault();
+				getJSON('/api/kids', {
+					page:index,
+					class_select: this.class_select,
+					name:this.name,
+				}, function (err, results) {
+					if (err) {
+						return fatal(err);
+					}
+					vm.kids=results.kids;
+                    vm.page=results.page;					
+				});
+		    },
+            previous: function () {
+                this.reload(this.page.page_index - 1);
+            },
+            next: function () {
+                this.reload(this.page.page_index + 1);
+            },		
+            edit_kid: function (kid) {
+                location.assign('/kids/edit/' + kid.id);
+            },
+            delete_kid: function (kid) {
+                if (confirm('确认要删除“' + kid.name + '”？删除后不可恢复！')) { 
+                    url=('/api/kid/'+kid.id +'/delete')
+					postJSON(encodeURI(url), function (err, r) {
+                        if (err) {
+                            return alert(err.message || err.error || err);
+                        }
+                        refresh();
+                    });
+                };
+            }
+        },
+    });
+}
+$(function() {
+	getJSON('/api/kids', {
+		page: {{ page_index }},
+		class_select: class_select,
+		name:''
+	}, function (err, results) {
+			if (err) {
+				return fatal(err);
+			}
+		
+			
+			for(i in results.kids){			    
+				kis_birthday=results.kids[i].id_number.slice(6,10)
+				var d = new Date()
+                thisyesr=d.getFullYear()				
+				results.kids[i].age=thisyesr-kis_birthday			
+			}
+            
+            initVM(results);
+			x=document.getElementById("class_select");
+			classes=results.k_classes
+			for(var i=0;i<classes.length;i++){
+				v = classes[i].id; //value
+				name = classes[i].name;
+				opt = new Option(name,v); 
+				x.options.add(opt);
+				}
+	});
+	});
+
+	
+$(function() {
+	$('.modalSelector').on({
+		'show.uk.modal': function(){
+			console.log("Modal is visible.");
+		},
+
+		'hide.uk.modal': function(){
+			console.log("Element is not visible.");
+		}
+	});
+});
+</script>
+
+{% endblock %}
+
+{%block panel%}
+<div class="tm-panel  uk-panel uk-panel-box  ">                        
+	<div class="uk-panel-title">幼儿管理</div>
+	<div class="uk-panel-li"><a href="/kids/add">幼儿入园</a></div> 
+	<div class="line"></div>
+	<div class="uk-panel-li"><a href="/kids">幼儿信息列表</a></div>
+	<div class="line"></div>
+	<div class="uk-panel-li"><a href="/kid">幼儿详细信息</a></div>
+	<div class="line"></div>	
+	<br>
+	<div class="uk-panel-li"><a href="/rollcall">点名</a></div> 
+	<div class="line"></div>
+	<div class="uk-panel-li"><a href="/rollcall/modify">点名信息修改</a></div> 
+	<div class="line"></div>	
+	<div class="uk-panel-li"><a href="/attendance">考勤信息</a></div>
+	<div class="line"></div>
+	<br>
+
+</div>
+{%endblock%}
+					
+{% block content %}
+<div class="tit"><a href="/">主页 </a>  》 <a href="/">幼儿管理 </a></div>
+
+<div id="div-kids" class="div-pagemain" >		
+
+
+	<form  class="uk-form uk-form-stacked ">
+	<div class="uk-grid">
+<div class="uk-width-1-4">
+	<div class="uk-form-row ">
+		<label class="uk-form-label">班级名称:</label>
+		<div class="uk-form-controls  uk-form-controls-text">
+			<select v-model="class_select" id="class_select" v-on="change:reload()">
+				<option value=""></option>
+				<option value="未分配">未分配</option>
+			</select>
+		</div>	
+	</div>
+	</div>	
+	<div class="uk-width-1-4">
+		<label class="uk-form-label">姓名:</label>
+		<div class="uk-form-controls ">
+			<input v-model="name" v-on="change:reload()" type="text"  placeholder="名字" >
+		</div>
+	</div>
+	
+	</div>
+	</form>
+<hr>
+	
+	<div class="divmain-title">幼儿信息</div>		
+	<div class="divcontainer uk-overflow-container">
+        <table class="uk-table uk-table-striped  uk-text-nowrap">
+            <thead>
+                <tr>
+                    <th class="">姓名</th>
+                    <th class="">性别</th>
+                    <th class="">年龄</th>
+                    <th class="">家庭住址</th>
+					<th class="">联系人关系</th>
+                    <th class="">联系人姓名</th>					
+					<th class="">联系电话</th>								
+					<th class="">入学学费</th>
+					<th class="">班级</th>
+					<th class="">特长班</th> 
+					<th class="">操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr v-repeat="kid: kids" >
+				
+                    <td>
+                        <div v-text="kid.name"></div>				
+                    </td>
+					<td>
+                        <div v-text="kid.sex"></div>
+                    </td>
+                    <td>
+                       <div v-text="kid.age"></div>
+                    </td>
+					<td>
+                        <div  v-text="kid.address"></div>
+                    </td>
+					<td>
+                        <div  v-text="kid.contacts1"></div>
+                    </td>
+					<td>
+                       <div  v-text="kid.con1_name"></div>
+                    </td>
+					 <td>
+                        <div  v-text="kid.con1_phone"></div>
+                    </td>
+					
+					<td>
+                        <div  v-text="kid.tuition"></div>
+                    </td>
+					<td>
+                        <div  v-text="kid.k_class_name"></div>
+                    </td>
+					<td>
+                        <div  v-text="kid.s_class_name"></div>
+                    </td>
+                    <td>
+                        <a href="#0" v-on="click: edit_kid(kid)">edit<i class=""></i>
+                        <a href="#0" v-on="click: delete_kid(kid)">delete<i class=""></i>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+		</div>
+	
+		<div class="divpage uk-width-1-1 uk-text-center">
+				<ul class="uk-pagination">
+                <li v-if="! page.has_previous" class="uk-disabled"><span><i class="uk-icon-angle-double-left"></i></span></li>
+                <li v-if="page.has_previous"><a v-on="click: previous()" href=""><i class="uk-icon-angle-double-left"></i></a></li>
+                <li class="uk-active"><span v-text="page.page_index"></span></li>
+                <li v-if="! page.has_next" class="uk-disabled"><span><i class="uk-icon-angle-double-right"></i></span></li>
+                <li v-if="page.has_next"><a v-on="click: next()" href=""><i class="uk-icon-angle-double-right"></i></a></li>
+            </ul>
+        </div>
+ </div>
+{%endblock%}
+             

@@ -1,0 +1,309 @@
+{% extends "base.html" %}
+{% block title %}幼儿管理{% endblock %}
+{% block head %}
+    {{ super() }}
+<script>
+var vm
+class_select=''
+function initVM(data) {
+    vm = new Vue({
+        el: '#div-kids',
+        data: {
+            kids: data.kids,
+			k_classes:data.k_classes,
+			i_classes:data.i_classes,
+			class_select:'',
+			i_class_select:'',
+			name:'',
+			i_class_name:'',
+			class_count:'',
+			i_class:'',
+             },
+        methods: {
+		    reload:function(){	
+			event.preventDefault();
+			    x=document.getElementById("i_class_select")
+				index=x.selectedIndex
+				this.i_class_name=x.options[index].text
+				getJSON('/api/i_class_kids', {
+					i_class_select:this.i_class_select,
+					name:this.name,
+				}, function (err, results) {
+					if (err) {
+						return fatal(err);
+					}
+					for(i in results.kids){			    
+						kis_birthday=results.kids[i].id_number.slice(6,10)
+						var d = new Date()
+						thisyesr=d.getFullYear()			
+						results.kids[i].age=thisyesr-kis_birthday 
+                        						
+			        }
+					vm.kids=results.kids;
+					vm.class_count=results.i_class.class_count
+					vm.i_class=results.i_class;
+				});
+		    },
+			save:function(kid){		
+				event.preventDefault();			
+			   if (! this.i_class_select.trim()) {
+                    return alert('请选择兴趣班');
+					}
+			     if (! this.class_count) {
+                    return alert('请输入剩余课时');
+					}
+				if(!confirm('确定'+kid.name+'加入'+this.i_class_name+'？')){
+				       return;
+				   }	
+				getJSON('/api/i_class_kids/add', {
+					i_kid:  kid.id,
+					i_class_select:this.i_class_select,
+					class_count:this.class_count
+				}, function (err, results) {
+					if (err) {
+						return fatal(err);
+					}
+					vm.charge(kid);
+					vm.reload();
+				});
+				
+		    },
+	       charge:function (kid){
+		        var paid=vm.i_class.tuition*vm.class_count
+				var r=confirm("收取"+kid.name+"学费"+paid+"元!");
+				if (r==true)
+				  { 
+				  url=('/api/i_tuition/add')
+					postJSON(encodeURI(url),{
+					kid_id:kid.id,
+					class_count:this.class_count,
+					paid:paid,
+					class_select:vm.i_class_select,
+				},function (err, r) {
+                        if (err) {
+                            return alert(err.message || err.error || err);
+                        }
+						r=confirm("是否打印收据?");
+						if(r==true){vm.print(kid)}
+						vm.reload();
+				 }
+				 )}
+			},
+			print:function(kid){                    			
+					var cycle=Math.abs( Number(vm.class_count))+'课时'
+					var charge=vm.i_class.tuition*vm.class_count
+					postJSON('/print/i_tuition',{
+						kid_id:kid.id,
+						kid_name:kid.name,
+						cycle:cycle,
+						charge:charge,
+						i_class:vm.i_class_select,					
+					},function (err, r) {
+							if (err) {
+								return alert(err.message || err.error || err);
+							}
+							window.open ("/print/charge", "newwindow","toolbar=no, location=no, directories=no, status=no, menubar=no, scrollbars=no, resizable=no, left=200, width=650, height=500") 
+						}
+					 )	
+				
+				},	
+			
+			leave: function (kid) {
+			    vm.class_count=-vm.class_count
+                if (confirm('确认“' + kid.name + '"退出'+vm.i_class_name+'班！')) { 
+                    url=('/api/i_class_kid/leave')
+					postJSON(encodeURI(url), {
+                        kid:kid.id,
+						i_class:vm.i_class_select,
+						class_count:vm.class_count,
+					},function (err, r) {
+                        if (err) {
+                            return alert(err.message || err.error || err);
+                        }
+                        vm.charge_back(kid);
+                    });
+                };
+            },
+			 charge_back:function (kid){			    
+		        postJSON('/api/i_tuition/check', {
+                        class_count:vm.class_count,
+						kid:kid.id,
+						i_class:vm.i_class_select,
+					},function (err, r) {
+                        if (err) {
+                            return alert(err.message || err.error || err);
+                        }
+						if (r.is_tuition=='y'){									
+							var paid=vm.i_class.tuition*vm.class_count
+							var r=confirm("退回"+kid.name+"学费"+paid+"元!");
+							if (r==true)
+							  { 
+							 url=('/api/i_tuition/add')
+								postJSON(encodeURI(url),{
+								kid_id:kid.id,
+								class_count:vm.class_count,
+								paid:paid,
+								class_select:vm.i_class_select,
+							},function (err, r) {
+									if (err) {
+										return alert(err.message || err.error || err);
+									}
+									r=confirm("是否打印收据?");
+									if(r==true){vm.print(kid)};
+									vm.reload();
+							 }
+							 )}
+							}
+						else{
+							vm.reload();
+							}
+						
+					});	
+			},
+        },
+    });
+}
+$(function() {
+	getJSON('/api/i_class_kids', {
+		i_class_select:i_class_select,
+		name:''
+	}, function (err, results) {
+			if (err) {
+				return fatal(err);
+			}
+			for(i in results.kids){			    
+			kis_birthday=results.kids[i].id_number.slice(6,10)
+			var d = new Date()
+			thisyesr=d.getFullYear()			
+			results.kids[i].age=thisyesr-kis_birthday			
+			}
+			initVM(results);
+            for (i in vm.kids){
+			    if (vm.kids[i].k_class==''){vm.kids[i].k_class='999'}			
+			}			
+			x=document.getElementById("class_select");
+			classes=results.k_classes
+			for(var i=0;i<classes.length;i++){
+				v = classes[i].id; //value
+				name = classes[i].name;
+				opt = new Option(name,v); 
+				x.options.add(opt);
+				}
+			x=document.getElementById("i_class_select");
+			classes=results.i_classes
+			for(var i=0;i<classes.length;i++){
+				v = classes[i].id; //value
+				name = classes[i].name;
+				opt = new Option(name,v); 
+				x.options.add(opt);
+				}			
+	});
+	});
+     
+</script>
+
+{% endblock %}
+
+{%block panel%}
+<div class="tm-panel  uk-panel uk-panel-box  ">                        
+	<div class="uk-panel-title">兴趣班管理</div>
+	<div class="uk-panel-li"><a href="/i_class_kids">人员调整</a></div> 
+	<div class="line"></div>
+	<div class="uk-panel-li"><a href="/i_class">班级人员信息</a></div>
+	<div class="line"></div>
+	<div class="uk-panel-li"><a href="/i_tuition">兴趣班学费</a></div>
+</div>
+{%endblock%}
+					
+{% block content %}
+<div class="tit"><a href="/">主页 </a>  》 <a href="">兴趣班管理 </a></div>
+				
+
+
+<div id="div-kids" class="div-pagemain uk-grid  uk-grid-divider" >
+
+<div class="uk-width-1-2">
+
+<form  class="uk-form uk-form-stacked ">
+
+
+	<div class="uk-grid">
+		<div class="uk-width-1-3">
+			<div class="uk-form-row ">
+			<label class="uk-form-label">班级名称:</label>
+			<div class="uk-form-controls  uk-form-controls-text">
+				
+				<select v-model="class_select" id="class_select" >
+					<option value=""></option>
+					<option value="999">未分配</option>
+				</select>
+			</div>
+			</div>
+		</div>	
+
+		<div class="uk-width-1-3">
+			<div class="uk-form-row ">
+			<label class="uk-form-label">姓名:</label>
+			<div class="uk-form-controls ">
+				<input v-model="name" v-on="change:reload()" type="text"  placeholder="名字" class="">
+			</div>
+			</div>
+		</div>
+	</div>
+</form>
+<div class="divmain-title">未加入{{'{{'}}i_class_name{{'}}'}}的小朋友</div>	
+
+	<div class="uk-scrollable-box" style="height:300px; width:250px;">
+
+        <div v-repeat="kid: kids | filterBy '0' in 'is_i_class' | filterBy class_select in 'k_class' | filterBy name in 'name'">
+		    <div  class="i_class_kids uk-visible-hover-inline" v-on="click:save(kid)">{{'{{'}}kid.name{{'}}'}}&nbsp;&nbsp;&nbsp&nbsp;{{'{{'}}kid.sex{{'}}'}}&nbsp;&nbsp;&nbsp&nbsp;{{'{{'}}kid.age{{'}}'}}岁<div class="uk-hidden">-点击加入!</div></div>
+        </div>
+    </div>	
+	
+</div>	
+     
+	<div class="uk-width-1-2 ">
+
+<form  class="uk-form uk-form-stacked ">	
+	<div class="uk-grid">
+	    <div class="uk-width-1-3">
+		<div class="uk-form-row ">
+			<label class="uk-form-label">兴趣班名称:</label>
+			<div class="uk-form-controls  uk-form-controls-text">
+				<select v-model="i_class_select" id="i_class_select"  v-on="change:reload()">
+					<option value=""></option>			
+				</select>
+			</div>
+		</div>
+		</div>
+		
+		<div class="uk-width-1-3">
+		<div class="uk-form-row">
+			<label class="uk-form-label">总课时:</label>
+			<div class="uk-form-controls uk-form-controls-text">
+				<input id="class_count" v-model="class_count" type="text" >
+			</div>
+		</div>
+        </div>
+    </div>	
+</form>		
+
+<div class="divmain-title">已在{{'{{'}}i_class_name{{'}}'}}的小朋友</div>			
+<div class="uk-scrollable-box" style="height:300px; width:250px;">
+
+      <div v-repeat="kid: kids | filterBy '1' in 'is_i_class'">
+		
+		<div  class="i_class_kids" v-on="click:leave(kid)">{{'{{'}}kid.name{{'}}'}}&nbsp;&nbsp;&nbsp&nbsp;{{'{{'}}kid.sex{{'}}'}}&nbsp;&nbsp;&nbsp&nbsp;{{'{{'}}kid.age{{'}}'}}岁    </div>
+		
+		</div>
+      
+
+</div>		
+</div>	
+ <br>
+ <br>
+ <br> 
+</div>			
+	
+{%endblock%}
+             

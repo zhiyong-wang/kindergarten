@@ -1,0 +1,396 @@
+{% extends "base.html" %}
+{% block title %}班级管理{% endblock %}
+{% block head %}
+    {{ super() }}
+	<link href="/static/uikit/css/components/datepicker.css" rel="stylesheet" type="text/css" />
+	<link href="/static/uikit/css/components/form-select.css" rel="stylesheet" type="text/css" />	
+	<script src="/static/uikit/js/components/datepicker.js"></script>
+	<script src="/static/uikit/js/components/form-select.js"></script>
+
+	
+	
+<script>
+var vm	
+    ID = '{{ id }}';
+    action = '{{ action }}';
+	teachers = new Array();
+	teachers_select=new Array();
+	teachers_count=0;
+	n=0;
+function initVM(class_w) {
+     vm = new Vue({
+		el: '#form-class-add',
+		data: class_w,
+		methods: {
+		    change:function(event){
+				this.total=this.tuition*this.class_count
+			},
+		    submit: function (event) {			    
+				event.preventDefault();
+                vm.teachers=teachers_select;
+				this.date=document.getElementById("date").value
+			    date= this.date +' 08:00:00'						
+			    date = js_strto_time(date)
+
+                if (! this.name.trim()) {
+                    return alert('请输入班级名称');
+                } 						
+                if (! this.type.trim()) {
+                    return alert('请选择班级类别');
+                } 
+				if (!this.date) {
+                    return alert('请选择开班日期');
+                }
+				var  reg= /^\d+(\.\d+)?$/;
+				if(this.type=="兴趣班"){
+				
+					if (! this.tuition |! reg.test(this.tuition)) {
+						return alert('请输入学费,学费为数字');
+					}
+				    if (! this.class_count |! reg.test(this.class_count)) {
+                    return alert('请输入课时数量！');
+                    }
+				    if (this.other==true){
+                        if (! this.other_charge_name.trim()) {
+                        return alert('请输入其他收费项目名称');
+                        } 
+						if (! this.other_charge |! reg.test(this.other_charge)) {
+							return alert('请输入收费金额，要求输入数字');
+						}
+						
+					}
+				};				
+				for (i=0;i<this.teachers.length;i++){
+				    p=this.teachers[i];
+					for(j=0;j<i;j++){	
+					    q=this.teachers[j];
+						if(p==q){
+						  return alert('重复'+i+'='+j)
+						}
+					}
+			    };    
+				
+                var $form = $('#form-class-add').find('form');
+                    postJSON(action,{
+					name:this.name,
+					type:this.type,
+					tuition:this.tuition,
+					class_count:this.class_count,
+					other_charge_name:this.other_charge_name,
+					other_charge:this.other_charge,
+					primary_teacher:this.primary_teacher,
+					teachers:this.teachers,
+					date:date,
+					close:this.close,
+				}, function (err, r) {
+					if (err) {
+						return alert(err.message || err.error || err);
+					}
+					else {
+					    if (ID){
+						    return location.assign('/classes');
+						}
+						else{
+						    return location.assign('/classes/add');
+						}
+					}
+				});
+				}
+			}
+		})
+}
+$(function () {
+    if (ID) {
+ 	    getJSON('/api/class/' + ID, function (err, class_w) {
+            if (err) {
+                return  (err);
+            }			
+            initVM(class_w);
+			vm.add=false
+			vm.date = class_w.create_date;
+			document.getElementById("date").value = js_date_time(class_w.create_date);
+            loadteachers();
+			add_option('999',class_w.primary_teacher)
+			teachers_select=class_w.teachers;
+			teachers_select.pop();
+			for (i=0;i<teachers_select.length;i++){
+			    add_select(i,teachers_select[i]);	         				   
+				teachers_count=i+1;
+			}
+			if (teachers_count==0){	
+			add_select(teachers_count,'')
+  		    teachers_count=teachers_count+1}
+        });
+    }
+    else {
+        initVM({
+            name:'',
+			type:'常规班',			
+			date:'',
+			tuition:0,
+			class_count:0,
+			total:'',
+			other:false,
+			other_charge:0,
+			other_charge_name:'',
+			primary_teacher:'',
+			teachers:new Array(),
+            add:true,
+            close:false,			
+        });
+		loadteachers()
+		add_option('999','')
+		add_select(teachers_count,'')
+		teachers_count=teachers_count+1
+    }
+});
+function change_primary_teacher() {
+   vm.primary_teacher=document.getElementById("primary_teacher").value; 
+};
+
+
+function loadteachers() { 
+	var  xmlhttp=new XMLHttpRequest();
+	xmlhttp.onreadystatechange=function()
+		{
+		if (xmlhttp.readyState==4 && xmlhttp.status==200)
+			{
+			teachers=xmlhttp.responseText;
+			obj = JSON.parse(teachers);
+			teachers=obj.teachers;
+			}
+		}
+	xmlhttp.open("POST","/api/teachers/all",false);
+	xmlhttp.setRequestHeader("Content-type","application/x-www-form-urlencode");
+	xmlhttp.send();
+};
+
+function  txt1(n){
+	return ""
+	+"<div id='t"+n+"' class='uk-form-row'>"
+	+"<label class='uk-form-label'>教 师:</label>"
+	+"<div class='uk-form-controls uk-form-controls-text'>"
+	+"<select id='teacher"+n+"'  type='text' maxlength='50' placeholder='教师' >"
+	+"<option value=''></option> "
+	+"</select><i id='del"+n+"' class='uk-icon-close' ></i>"
+	+"</div>"
+	+"</div>"
+	+"<script>" 
+    +"	$('#del"+n+"').click(function(event){"
+	+"event.preventDefault();"
+    +"var child=document.getElementById('t"+n+"');"
+    +"child.parentNode.removeChild(child);"
+	+"teachers_select_change()"
+	+"})"
+	+"<\/script>"
+}
+
+				
+
+$(function (){
+	$("#btn1").click(function(event){
+	    event.preventDefault();
+        add_select(teachers_count,'');
+        teachers_count=teachers_count+1;	
+		})
+ });
+
+ 
+function  teachers_select_change(){   //teachers整个数组都更新
+	teachers_select=new Array();
+	j=0;
+	for (var i=0;i<teachers_count;i++){          //任意input变化，teachers整个数组都更新
+		teacher = 'teacher'+i;
+		x=document.getElementById(teacher)		
+		if (x){
+		
+		if (!x.value=='') {
+		  teachers_select[j]=x.value;
+		  j++;
+		  }
+        }
+	
+	};  
+	alert(teachers_select)
+ }	
+function add_select(n,tea){
+        var txt=txt1(n);
+		$("#btn1").before(txt);
+		add_option(n,tea);
+		$("#teacher"+n+"").change(function(event){
+	         teachers_select_change()
+		})
+}
+ function add_option(n,tea){
+    if (n=='999'){
+	var selectobj = document.getElementById("primary_teacher");
+	}    
+	else{    
+	var selectobj = document.getElementById("teacher"+n+"");
+	}
+    for(var i=0;i<teachers.length;i++){
+		v = teachers[i].name; //value
+		name = teachers[i].name;
+		if (name==tea){opt = new Option(name,v,true,true);}
+		else{opt = new Option(name,v);} 
+		selectobj.options.add(opt);
+}
+
+}
+
+//时间转换为时间戳
+function js_strto_time(str_time){
+    var new_str = str_time.replace(/:/g,'-');
+	new_str = new_str.replace(/ /g,'-');
+    new_str = new_str.replace(/\//g,'-');
+    var arr = new_str.split("-");
+    var datum = new Date(Date.UTC(arr[0],arr[1]-1,arr[2],arr[3]-8,arr[4],arr[5]));
+    return strtotime = datum.getTime()/1000;
+}
+function js_date_time(unixtime) {
+    var timestr = new Date(parseInt(unixtime) * 1000);
+    var datetime = timestr.toLocaleDateString().replace(/年|月/g, '-').replace(/日/g, '');
+    return datetime;
+}
+
+
+</script>
+
+{% endblock %}
+
+{%block panel%}
+<div class="tm-panel  uk-panel uk-panel-box  ">                        
+	<div class="uk-panel-title">教师与班级管理</div>
+	<div class="uk-panel-li"><a href="/teachers/add">教师档案登记</a></div> 
+	<div class="line"></div>
+	<div class="uk-panel-li"><a href="/teachers">教师信息查询</a></div>
+	<div class="line"></div>
+	<br>
+	<div class="uk-panel-li"><a href="/classes/add">建立新班级</a></div> 
+	<div class="line"></div>
+	<div class="uk-panel-li"><a href="/classes">班级信息</a></div>
+	<div class="line"></div>
+</div>
+{%endblock%}
+					
+{% block content %}
+<div class="tit"><a href="/">主页 </a>  》 <a href="">班级管理 </a></div>
+<div class="divmain-title">建立新班级</div>				
+
+<ul class="uk-tab" data-uk-tab="{connect:'#tab-content'}">
+	<li class="uk-active"><a href="#">基本信息</a></li>
+	<li><a href="#">增加教师</a></li>
+</ul>
+
+<ul id="tab-content" class="uk-switcher uk-margin">
+	<li class="uk-active">				
+
+<div class="divmain" id="form-class-add" >
+<form  v-on="submit: submit" class="uk-form uk-form-horizontal">
+
+			<div class="uk-form-row">
+				<label class="uk-form-label">班级名称:</label>
+				<div class="uk-form-controls">
+					<input v-model="name"   type="text" maxlength="50" placeholder="班级名称" class="">
+				</div>
+			</div>
+			<div class="uk-form-row">
+				<label class="uk-form-label">班级类别:</label>
+				<div class="uk-form-controls uk-form-controls-text">
+					<select v-model="type" v-if="add" >
+					<option value="常规班" >常规班</option>
+					<option value="兴趣班">兴趣班</option>
+					</select>
+				</div>
+				<div class="uk-form-controls uk-form-controls-text">
+					<input v-model="type" v-if="!add" type="text" maxlength="50" readonly="readonly" >
+				</div>
+				
+				
+			</div>
+			<div class="uk-form-row">
+				<label class="uk-form-label">开班日期:</label>
+				<div class="uk-form-controls uk-form-controls-text">
+					<input id="date" v-model="date" type="text" data-uk-datepicker="{format:'YYYY-MM-DD'}" placeholder="选择建立时间">
+				</div>
+			</div>
+			
+			<div v-if="type=='兴趣班'" class="uk-form-row">
+				<label class="uk-form-label">学费标准：</label>
+				<div class="uk-form-controls">
+					<input v-model="tuition" v-on="change:change" type="text" maxlength="50" placeholder="学费标准" class="">
+				</div>
+			</div>
+			
+			<div v-if="type=='兴趣班'" class="uk-form-row">
+				<label class="uk-form-label">课时总量：</label>
+				<div class="uk-form-controls">
+					<input v-model="class_count" v-on="change:change" type="text" maxlength="50" placeholder="课时总量" class="">
+				</div>
+			</div>
+			
+			<div v-if="type=='兴趣班'" class="uk-form-row">
+				<label class="uk-form-label">应交学费总额：</label>
+				<div class="uk-form-controls">
+					<input v-model="total" type="text" readonly="readonly" maxlength="50" placeholder="应交学费总额" class="">
+				</div>
+			</div>
+			
+			<div v-if="type=='兴趣班'" class="uk-form-row">
+				<label class="uk-form-label">是否有其他费用：</label>
+				<div class="uk-form-controls">
+					<input v-model="other"  type="checkbox">
+				</div>
+			</div>	
+			
+			<div v-if="type=='兴趣班' & other==true" class="uk-form-row">
+				<label class="uk-form-label">其他费用名称：</label>
+				<div class="uk-form-controls">
+					<input v-model="other_charge_name" type="text" maxlength="50" placeholder="其他费用名称" class="">
+				</div>
+			</div>			
+
+			<div v-if="type=='兴趣班'& other==true" class="uk-form-row">
+				<label class="uk-form-label">其他费用标准：</label>
+				<div class="uk-form-controls">
+					<input v-model="other_charge" type="text" maxlength="50" placeholder="其他费用标准" class="">
+				</div>
+			</div>					
+			<div  class="uk-form-row">
+				<label class="uk-form-label">是否已结束：</label>
+					<div class="uk-form-controls">
+						<input v-model="close"  type="checkbox">
+					</div>
+			</div>					
+			<div class="divbutton">
+				<button type="submit" class="uk-button uk-button-primary"> 确定</button>
+			</div>
+</form>
+</div>
+
+</li>
+<li>						
+<div class="divmain" >					
+<form   class="uk-form uk-form-horizontal">	
+			<div class="uk-form-row">
+				<label class="uk-form-label">主班教师:</label>
+				<div class="uk-form-controls">
+					<select  id="primary_teacher" onchange="change_primary_teacher()">
+					<option value="" ></option>
+					</select>					
+				</div>
+			</div>	
+<br>			
+<div class="divbutton">
+	<div id="divphoto">
+    <button id="btn1" class="uk-button uk-button-primary">增加教师 </button>
+	</div>
+</div>
+</form>
+</div>						
+</li>
+					
+</ul>
+
+{%endblock%}
+             

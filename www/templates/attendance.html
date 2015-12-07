@@ -1,0 +1,305 @@
+{% extends "base.html" %}
+{% block title %}考勤管理{% endblock %}
+{% block head %}
+    {{ super() }}
+<script>
+var vm
+var begindate=1
+var workinmonth
+function initVM(data) {
+     vm = new Vue({
+        el: '#div-kids',
+        data: {
+		    page:data.page,
+            kids:data.kids,
+			class_select:'',
+			month:'',
+			},
+        methods: {
+		    reload:function(page_index){
+			    event.preventDefault();
+			    start_end=this.month.split("-")	
+				dates=days_in_month(start_end[0])
+                ts=dates.length				
+				getJSON('/api/attendance', {
+                    page:page_index,
+					class_select: this.class_select,
+					start_day:start_end[0],
+					end_day:start_end[1]
+				}, function (err, results) {
+					if (err) {
+						return fatal(err);
+					}
+           			vm.kids=results.kids;
+					vm.page=results.page;
+					for (i in vm.kids){
+					    vm.kids[i].notbe=new Array(ts)
+						for (p=0;p<ts;p++){vm.kids[i].notbe[p]=""}
+					    kidbenot=vm.kids[i].attendance
+						for (j in kidbenot){
+						    a=Math.abs(kidbenot[j] - (Number(start_end[0])+60*60*8))/(60*60*24);
+							vm.kids[i].notbe[a]='x'
+						}
+										
+					}
+					add_table(dates)
+				});
+		    },			
+            previous: function () {
+                this.reload(this.page.page_index - 1);
+            },
+            next: function () {
+                this.reload(this.page.page_index + 1);
+            },	
+			
+        },
+    });
+}
+$(function() {
+	getJSON('/api/attendance', {
+        page: {{ page_index }},
+		class_select: class_select
+	}, function (err, results) {
+		if (err) {
+			return fatal(err);
+		}
+		
+		initVM(results);
+		
+		x=document.getElementById("class_select");
+		classes=results.k_classes
+		for(var i=0;i<classes.length;i++){
+			v = classes[i].id; //value
+			name = classes[i].name;
+			opt = new Option(name,v); 
+			x.options.add(opt);
+			}
+		x=document.getElementById("month");
+		var date=new Date()
+		year=date.getFullYear()
+        now_date=date.getDate()
+		if (now_date>begindate){month=date.getMonth()+2} 
+		else {month=date.getMonth()+1}
+		for(var i=0;i<12;i++){
+			month=month-1
+			nextmonth=month+1
+			if (month==0){year=year-1;month=12;}
+		    srt_month=year+'年'+month+'月'	
+		    srt_date_begin=year+'-'+month+'-'+begindate+' 00:00:00'
+			srt_date_end=year+'-'+nextmonth+'-'+begindate+' 00:00:00'
+			v = js_strto_time(srt_date_begin)+'-'+js_strto_time(srt_date_end); //value,,本月起始的时间戳
+			name =srt_month;
+			if (i==0){opt = new Option(name,v,true,true);vm.month=v}
+		    else{opt = new Option(name,v);}
+			x.options.add(opt);
+			}
+        			
+	});
+});
+function days_in_month(start){
+	startday=new Date(parseInt(start) * 1000);
+	days=new Array;
+	month=startday.getMonth()+1
+	if (month==2){x=28}
+	else{if (month==1|month==3|month==5|month==7|month==8|month==10|month==12){x=31}
+		else{x=30}		}
+	workinmonth=x	
+	for(i=0;i<x;i++){
+		days[i]=new Date
+		days[i].setFullYear(startday.getFullYear())
+		days[i].setMonth(startday.getMonth())
+		days[i].setDate(startday.getDate()+i)
+		if(days[i].getDay()==0|days[i].getDay()==6){workinmonth=workinmonth-1}	}
+	return days
+}
+function  setday(day){
+	switch (day)
+	{
+		case 0:
+		  x="日";
+		  break;
+		case 1:
+		  x="一";
+		  break;
+		case 2:
+		  x="二";
+		  break;
+		case 3:
+		  x="三";
+		  break;
+		case 4:
+		  x="四";
+		  break;
+		case 5:
+		  x="五";
+		  break;
+		case 6:
+		  x="六";
+		  break;
+		}
+return x
+}
+
+
+function  txt1(dates){
+		dates_th =""
+		days_th =""
+		month=dates[0].getMonth()+1
+		n=1
+		for (i=1;i<dates.length;i++){
+		    if (dates[i].getDate()>dates[i-1].getDate()){
+			n=n+1;}
+			else {break;}
+		}    
+		month_th="<th class='' colspan='"+n+"'>"+month+"月"+"</th>"
+		if(n!=dates.length){
+			n=dates.length-n
+			month=month+1
+			month_th=month_th+"<th class='' colspan='"+n+"'>"+month+"月"+" </th>"
+		}
+		for(i in dates){
+			if (dates[i].getDay()==0||dates[i].getDay()==6){dayclass="<th class='day'>"}			    
+			else{dayclass="<th class=''>"}
+			dates_th=dates_th+dayclass+dates[i].getDate()+"</th>"
+			days_th=days_th+dayclass+setday(dates[i].getDay())+"</th>"
+		}  
+    attendance=""
+    for (i in vm.kids) {
+	    notbe=""
+
+		
+		for(k in dates){
+			if (dates[k].getDay()==0||dates[k].getDay()==6){dayclass="<td class='day'><i class='uk-icon-circle-o'></i>"}			    
+			else{dayclass="<td class='green'><i class='uk-icon-check'>"}
+            if	(vm.kids[i].notbe[k]=='x'){
+			dayclass="<td class='red'><i class='uk-icon-close'>"
+			}	
+			notbe=notbe+dayclass+"</td>"
+		}
+	
+	 attendance=attendance+"<tr class='alt'>"
+	 +     "<td  class='name' >"+vm.kids[i].name+"</td>"
+     + notbe
+	 
+	 +     "<td>  <div class=''>"+workinmonth+"</div>  </td>" 
+	 +     "<td>  <div class=''>"+vm.kids[i].attendance.length+"</div>  </td>"
+	 + "</tr>"
+     }
+ 
+return "<table id='kid_table'>"
+	 +"<thead>"
+	 +   "<tr class='alt'>"
+	 +    "<th  rowspan='3' class='name'>姓名</th>"
+	 +month_th
+	 +     "<th rowspan='3' class='end'>应出勤天数</th>"
+	 +     "<th rowspan='3' class='end'>缺勤天数</th>" 
+	 +   "</tr>"
+	 +dates_th
+	 +   "</tr>"
+	 +days_th
+	 +   "</tr>"	 
+	 +"</thead>"
+	 +"<tbody>"
+	 +attendance	 
+	 +"</tbody>"
+	 +"</table>"   
+}
+
+function add_table(dates){
+        var txt=txt1(dates);
+		$("#kid_table").remove();	
+		$("#table_begin").after(txt);	
+}		
+//时间转换为时间戳
+function js_strto_time(str_time){
+    var new_str = str_time.replace(/:/g,'-');
+    new_str = new_str.replace(/ /g,'-');
+    var arr = new_str.split("-");
+    var datum = new Date(Date.UTC(arr[0],arr[1]-1,arr[2],arr[3]-8,arr[4],arr[5]));
+    return strtotime = datum.getTime()/1000;
+}
+function js_date_time(unixtime) {
+    var timestr = new Date(parseInt(unixtime) * 1000);
+    var datetime = timestr.toLocaleDateString().replace(/年|月/g, "-").replace(/日/g, " ");
+    return datetime;
+}	
+	
+	
+	
+      
+</script>
+{% endblock %}
+
+{%block panel%}
+<div class="tm-panel  uk-panel uk-panel-box  ">                        
+	<div class="uk-panel-title">幼儿管理</div>
+	<div class="uk-panel-li"><a href="/kids/add">幼儿入园</a></div> 
+	<div class="line"></div>
+	<div class="uk-panel-li"><a href="/kids">幼儿信息列表</a></div>
+	<div class="line"></div>
+	<div class="uk-panel-li"><a href="/kid">幼儿详细信息</a></div>
+	<div class="line"></div>	
+	<br>
+	<div class="uk-panel-li"><a href="/rollcall">点名</a></div> 
+	<div class="line"></div>
+	<div class="uk-panel-li"><a href="/rollcall/modify">点名信息修改</a></div> 
+	<div class="line"></div>	
+	<div class="uk-panel-li"><a href="/attendance">考勤信息</a></div>
+	<div class="line"></div>
+	<br>
+
+</div>
+{%endblock%}
+					
+{% block content %}
+<div class="tit"><a href="/">主页 </a>  》 <a href="">幼儿日常管理 </a></div>
+
+<div id="div-kids" class="div-pagemain" >		
+
+
+<form  class="uk-form uk-form-stacked ">
+	<div class="uk-grid">	
+		<div class="uk-width-1-4">
+		<div class="uk-form-row ">
+			<div class="uk-form-controls  uk-form-controls-text">
+				<label class="uk-form-label">班级名称:</label>
+				<select v-model="class_select" id="class_select" v-on="change:reload({{ page_index }})">
+					<option value=""></option>
+				</select>
+			</div>
+		</div>
+		</div>	
+		<div class="uk-width-1-4">
+		<div class="uk-form-row ">
+			<div class="uk-form-controls  uk-form-controls-text">
+				<label class="uk-form-label">月份:</label>
+				<select v-model="month" id="month" v-on="change:reload()">
+					<option value=""></option>
+				</select>
+			</div>
+		</div>	
+		</div>
+
+	</div>
+	</form>
+<hr>
+	
+	<div class="divmain-title">考勤信息</div>		
+	<div class="divcontainer uk-overflow-container">
+    <div  id="table_begin" class=""  ></div> 
+
+	</div>
+		
+		
+		<div class="divpage uk-width-1-1 uk-text-center">
+				<ul class="uk-pagination">
+                <li v-if="! page.has_previous" class="uk-disabled"><span><i class="uk-icon-angle-double-left"></i></span></li>
+                <li v-if="page.has_previous"><a v-on="click: previous()" href=""><i class="uk-icon-angle-double-left"></i></a></li>
+                <li class="uk-active"><span v-text="page.page_index"></span></li>
+                <li v-if="! page.has_next" class="uk-disabled"><span><i class="uk-icon-angle-double-right"></i></span></li>
+                <li v-if="page.has_next"><a v-on="click: next()" href=""><i class="uk-icon-angle-double-right"></i></a></li>
+            </ul>
+        </div>
+ </div>
+{%endblock%}
+             

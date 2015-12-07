@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+	<script type="text/javascript" src="/static/js/jquery.js"></script>
+    <script type="text/javascript" src="/static/js/md5.js"></script>
+	<script type="text/javascript" src="/static/js/vue.js"></script>
+	<script type="text/javascript" src="/static/js/wang.js"></script>
+    <title>Add users</title>
+<script>	
+$(function () {
+	var vm = new Vue({
+		el: '#form-user-add',
+		data: {
+			name: '',
+			admin: '1',
+			password1: '',
+			password2: ''
+		},
+		methods: {
+			submit: function (event) {
+				event.preventDefault();
+                if (! this.name.trim()) {
+                    return alert('请输入名字');
+                }
+                if (this.password1.length < 6) {
+                    return alert('口令长度至少为6个字符');
+                }
+                if (this.password1 !== this.password2) {
+                    return alert('两次输入的口令不一致');
+                }
+				postApi('/api/user', {
+					name: this.name,
+					admin: this.admin,
+					password: CryptoJS.MD5(this.password1).toString(),
+				}, function (err, r) {
+					if (err) {
+						showError(err);
+					}
+					else {
+						return location.assign('/');
+					}
+				});
+			}
+		}
+	});
+});
+</script>
+</head>
+<body>
+    <div class="">
+        <h1>加入用户！</h1>
+        <form id="form-user-add" v-on="submit: submit" class=" ">
+            <div class="">
+                <label class="">名字:</label>
+                <div class="">
+                    <input v-model="name" type="text" maxlength="50" placeholder="名字" class=""> {{ '{{' }}name{{ '}}' }}
+                </div>
+            </div>
+            <div class="">
+                <label class="">输入口令:</label>
+                <div class="">
+                    <input v-model="password1" type="password" maxlength="50" >
+                </div>
+            </div>
+            <div class="">
+                <label class="">重复口令:</label>
+                <div class="">
+                    <input v-model="password2" type="password" maxlength="50" >
+                </div>
+            </div>
+			<div class="">
+                <label class="">是否管理员:</label>
+                <input v-model="admin" type="checkbox" > 
+				</div>
+            <div class="">
+                <button type="submit" class=""><i class=""></i> 加入</button>
+            </div>
+        </form>
+    </div>
+</body>
+</html>

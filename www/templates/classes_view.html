@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+{% block title %}教师管理{% endblock %}
+{% block head %}
+    {{ super() }}
+<script>
+function initVM(data) {
+    $('#div-classes').show();
+    var vm = new Vue({
+        el: '#div-classes',
+        data: {
+		    page:data.page,
+            classes: data.classes,
+			type:'常规班',
+             },
+        methods: {
+            reload:function(index){
+			    
+			    event.preventDefault();
+				getJSON('/api/classes', {
+					page:index,
+					type: this.type,
+					name:this.name,
+				}, function (err, results) {
+					if (err) {
+						return fatal(err);
+					}
+					for (x in results.classes){
+		                 results.classes[x].create_date=js_date_time(results.classes[x].create_date);		}
+					vm.classes=results.classes;
+                    vm.page=results.page;					
+				});
+		    },
+            previous: function () {
+                this.reload(this.page.page_index - 1);
+            },
+            next: function () {
+                this.reload(this.page.page_index + 1);
+            },		
+			edit_class: function (t_class) {
+                location.assign('class/edit/' +t_class.id);
+            },
+            delete_class: function (t_class) {
+                if (confirm('确认要删除“' + t_class.name + '”？删除后不可恢复！')) { 
+                    url=('/api/class/'+t_class.id +'/delete')
+					postJSON(encodeURI(url), function (err, r) {
+                        if (err) {
+                            return alert(err.message || err.error || err);
+                        }
+                        refresh();
+                    });
+                };
+            }
+        },
+    });
+}
+$(function() {
+	getJSON('/api/classes', {
+		page: {{ page_index }},
+		type:'常规班',
+	}, function (err, results) {
+		if (err) {
+			return fatal(err);
+		}
+		for (x in results.classes){
+		   results.classes[x].create_date=js_date_time(results.classes[x].create_date);
+		}
+    	initVM(results);
+	});
+	});
+	
+	
+ //时间转换为时间戳
+function js_strto_time(str_time){
+    var new_str = str_time.replace(/:/g,'-');
+    new_str = new_str.replace(/ /g,'-');
+    var arr = new_str.split("-");
+    var datum = new Date(Date.UTC(arr[0],arr[1]-1,arr[2],arr[3]-8,arr[4],arr[5]));
+    return strtotime = datum.getTime()/1000;
+}
+function js_date_time(unixtime) {
+    var timestr = new Date(parseInt(unixtime) * 1000);
+    var datetime = timestr.toLocaleDateString().replace(/年|月/g, "-").replace(/日/g, " ");
+    return datetime;
+}     
+</script>
+{% endblock %}
+
+{%block panel%}
+<div class="tm-panel  uk-panel uk-panel-box  ">                        
+	<div class="uk-panel-title">教师与班级管理</div>
+	<div class="uk-panel-li"><a href="/teachers/add">教师档案登记</a></div> 
+	<div class="line"></div>
+	<div class="uk-panel-li"><a href="/teachers">教师信息查询</a></div>
+	<div class="line"></div>
+	<br>
+	<div class="uk-panel-li"><a href="/classes/add">建立新班级</a></div> 
+	<div class="line"></div>
+	<div class="uk-panel-li"><a href="/classes">班级信息</a></div>
+	<div class="line"></div>
+</div>
+{%endblock%}
+					
+{% block content %}
+<div class="tit"><a href="/">主页 </a>  》 <a href="">班级管理 </a></div>
+
+<div id="div-classes" class="div-pagemain" >		
+
+
+	<form  class="uk-form uk-form-stacked ">
+	<div class="uk-grid">
+	<div class="uk-width-1-4">
+	<div class="uk-form-row ">
+		<label class="uk-form-label">班级类别:</label>
+		<div class="uk-form-controls  uk-form-controls-text">
+			<select v-model="type" id="type" v-on="change:reload()">
+				<option value="常规班">常规班</option>
+				<option value="兴趣班">兴趣班</option>
+			</select>
+		</div>	
+	</div>
+	</div>
+
+	</div>
+	</form>
+<hr>
+	
+	<div class="divmain-title">班级信息</div>		
+	<div class="divcontainer uk-overflow-container">
+      
+        <table class="uk-table uk-table-striped  uk-text-nowrap">
+            <thead>
+                <tr>
+                    <th class="">班级名字</th>
+                    <th class="">成立时间</th>
+                    <th class="">学费</th>
+					<th class="">总课时</th>
+					<th class="">主班教师</th>
+					<th class="">教师</th>					
+					<th class="">操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr v-repeat="class: classes" >
+                    <td>
+                        <div   v-text="class.name"></div>
+                    </td>
+                    <td>
+                        <div   v-text="class.create_date"></div>
+                    </td>
+					<td>
+                        <div   v-text="class.tuition"></div>
+                    </td>
+					<td>
+                        <div   v-text="class.class_count"></div>
+                    </td>
+					<td>
+                        <div   v-text="class.primary_teacher"></div>
+                    </td>
+					<td>
+                        <div   v-text="class.teachers"></div>
+                    </td>
+                    <td>
+                        <a href="#0" v-on="click: edit_class(class)">edit<i class=""></i>
+                        <a href="#0" v-on="click: delete_class(class)">delete<i class=""></i>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+		</div>
+		
+		
+		<div class="divpage uk-width-1-1 uk-text-center">
+				<ul class="uk-pagination">
+                <li v-if="! page.has_previous" class="uk-disabled"><span><i class="uk-icon-angle-double-left"></i></span></li>
+                <li v-if="page.has_previous"><a v-on="click: previous()" href=""><i class="uk-icon-angle-double-left"></i></a></li>
+                <li class="uk-active"><span v-text="page.page_index"></span></li>
+                <li v-if="! page.has_next" class="uk-disabled"><span><i class="uk-icon-angle-double-right"></i></span></li>
+                <li v-if="page.has_next"><a v-on="click: next()" href=""><i class="uk-icon-angle-double-right"></i></a></li>
+            </ul>
+        </div>
+ </div>
+{%endblock%}
+             

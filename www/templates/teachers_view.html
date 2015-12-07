@@ -1,0 +1,268 @@
+{% extends "base.html" %}
+{% block title %}教师管理{% endblock %}
+{% block head %}
+    {{ super() }}
+	
+<script>
+function initVM(data) {
+    $('#div-teachers').show();
+    var vm = new Vue({
+        el: '#div-teachers',
+        data: {
+		    page:data.page,
+            teachers: data.teachers,
+		    classes:data.classes,
+			class_select:'',
+			type:'',
+			name:'',
+             },
+        methods: {
+		        change_classes:function(){
+                var x = document.getElementById("class_select"); 				
+				while(x.length>0){				    
+				    x.remove(0);
+				}
+                if (this.type!=''){				
+					 loadclasses(this.type)
+					 add_option('class_select',classes)	
+					 }
+				else{    
+					opt=new Option("","")
+					x.options.add(opt)
+					opt=new Option("未分配","未分配")
+					x.options.add(opt)				
+				}
+
+				 this.class_select=''
+				 this.reload()
+				 }, 
+			reload:function(index){
+			    event.preventDefault();
+				getJSON('/api/teachers', {
+					page:index,
+					type:this.type,
+					class_select: this.class_select,
+					name:this.name,
+				}, function (err, results) {
+					if (err) {
+						return fatal(err);
+					}
+					for(i in results.teachers){
+			    
+						kis_birthday=results.teachers[i].id_number.slice(6,10)
+						var d = new Date()
+						thisyesr=d.getFullYear()			
+						results.teachers[i].age=thisyesr-kis_birthday		
+		
+			        }
+					vm.teachers=results.teachers;
+                    vm.page=results.page;					
+				});
+		    },
+            previous: function () {
+                this.reload(this.page.page_index - 1);
+            },
+            next: function () {
+                this.reload(this.page.page_index + 1);
+            },	
+            edit_teacher: function (teacher) {
+                location.assign('/teachers/edit/' + teacher.id);
+            },
+            delete_teacher: function (teacher) {
+                if (confirm('确认要删除“' + teacher.name + '”？删除后不可恢复！')) { 
+                    url=('/api/teacher/'+teacher.id +'/delete')
+					postJSON(encodeURI(url), function (err, r) {
+                        if (err) {
+                            return alert(err.message || err.error || err);
+                        }
+                        refresh();
+                    });
+                };
+            }
+        },
+    });
+}
+$(function() {
+	getJSON('/api/teachers', {
+		page: {{ page_index }},
+		type:'',
+		class_select: '',
+		name:'',
+	}, function (err, results) {
+		if (err) {
+			return fatal(err);
+		}
+		for(i in results.teachers){
+			    
+			kis_birthday=results.teachers[i].id_number.slice(6,10)
+			var d = new Date()
+			thisyesr=d.getFullYear()
+			
+			results.teachers[i].age=thisyesr-kis_birthday
+			
+			}
+		initVM(results);
+	});
+});
+function loadclasses(t_type) { 
+	var  xmlhttp=new XMLHttpRequest();
+	xmlhttp.onreadystatechange=function()
+		{
+		if (xmlhttp.readyState==4 && xmlhttp.status==200)
+			{
+			classes=xmlhttp.responseText;
+			obj = JSON.parse(classes);
+     		classes=obj.classes;			
+		    }
+		}
+	xmlhttp.open("POST","/api/classes/"+t_type,false);
+	xmlhttp.setRequestHeader("Content-type","application/x-www-form-urlencode");
+	xmlhttp.send();
+};
+
+function add_option(select_input,classes,class_selected){
+    var selectobj = document.getElementById(select_input);
+	opt=new Option("","")
+	selectobj.options.add(opt)
+	opt=new Option("未分配","未分配")
+	selectobj.options.add(opt)
+	for(var i=0;i<classes.length;i++){
+		v = classes[i].id; //value
+		name = classes[i].name;
+		if (v==class_selected){opt = new Option(name,v,true,true);}
+		else{opt = new Option(name,v);} 
+		selectobj.options.add(opt);
+		}
+}
+</script>
+
+{% endblock %}
+
+{%block panel%}
+<div class="tm-panel  uk-panel uk-panel-box  ">                        
+	<div class="uk-panel-title">教师与班级管理</div>
+	<div class="uk-panel-li"><a href="/teachers/add">教师档案登记</a></div> 
+	<div class="line"></div>
+	<div class="uk-panel-li"><a href="/teachers">教师信息查询</a></div>
+	<div class="line"></div>
+	<br>
+	<div class="uk-panel-li"><a href="/classes/add">建立新班级</a></div> 
+	<div class="line"></div>
+	<div class="uk-panel-li"><a href="/classes">班级信息</a></div>
+	<div class="line"></div>
+</div>
+{%endblock%}
+					
+{% block content %}
+<div class="tit"><a href="/">主页 </a>  》 <a href="/">幼儿管理 </a></div>
+
+<div id="div-teachers" class="div-pagemain" >		
+
+
+	<form  class="uk-form uk-form-stacked ">
+	<div class="uk-grid">
+	<div class="uk-width-1-4">
+	<div class="uk-form-row ">
+		<label class="uk-form-label">班级类别:</label>
+		<div class="uk-form-controls  uk-form-controls-text">
+			<select v-model="type" id="type" v-on="change:change_classes()">
+			    <option value=""></option>
+				<option value="常规班">常规班</option>
+				<option value="兴趣班">兴趣班</option>
+			</select>
+		</div>	
+	</div>
+	</div>
+	
+    <div class="uk-width-1-4">
+	<div class="uk-form-row ">
+		<label class="uk-form-label">班级名称:</label>
+		<div class="uk-form-controls  uk-form-controls-text">
+			<select v-model="class_select" id="class_select" v-on="change:reload()">
+				<option value=""></option>
+				<option value="未分配">未分配</option>
+			</select>
+		</div>	
+	</div>
+	</div>	
+	<div class="uk-width-1-4">
+		<label class="uk-form-label">姓名:</label>
+		<div class="uk-form-controls ">
+			<input v-model="name" v-on="change:reload()" type="text"  placeholder="名字" >
+		</div>
+	</div>
+	
+	</div>
+	</form>
+<hr>
+	
+	<div class="divmain-title">教师信息</div>		
+	<div class="divcontainer uk-overflow-container">
+      
+        <table class="uk-table uk-table-striped  uk-text-nowrap">
+            <thead>
+                <tr>
+                    <th class="">姓名</th>
+                    <th class="">性别</th>
+                    <th class="">年龄</th>
+                    <th class="">学历</th>
+					<th class="">毕业院校</th>
+					<th class="">专业</th>
+					<th class="">联系电话</th>
+					<th class="">班级</th>
+					<th class="">类别</th>
+					<th class="">操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr v-repeat="teacher: teachers" >
+                    <td>
+                        <div v-text="teacher.name"></div>
+                    </td>
+                    <td>
+                        <div v-text="teacher.sex"></div>
+                    </td>
+                    <td>
+                        <div  v-text="teacher.age"></div>
+                    </td>
+					<td>
+                        <div v-text="teacher.educational"></div>
+                    </td>
+					<td>
+                        <div  v-text="teacher.university"></div>
+                    </td>
+					<td>
+                       <div v-text="teacher.specialty"></div>
+                    </td>
+					 <td>
+                        <div v-text="teacher.phone"></div>
+                    </td>
+					<td>
+                        <div v-text="teacher.class_name"></div>
+                    </td>
+					 <td>
+                        <div v-text="teacher.t_type"></div>
+                    </td>
+					
+                    <td>
+                        <a href="#0" v-on="click: edit_teacher(teacher)">edit<i class=""></i>
+                        <a href="#0" v-on="click: delete_teacher(teacher)">delete<i class=""></i>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+		</div>
+		
+		
+		<div class="divpage uk-width-1-1 uk-text-center">
+				<ul class="uk-pagination">
+                <li v-if="! page.has_previous" class="uk-disabled"><span><i class="uk-icon-angle-double-left"></i></span></li>
+                <li v-if="page.has_previous"><a v-on="click: previous()" href=""><i class="uk-icon-angle-double-left"></i></a></li>
+                <li class="uk-active"><span v-text="page.page_index"></span></li>
+                <li v-if="! page.has_next" class="uk-disabled"><span><i class="uk-icon-angle-double-right"></i></span></li>
+                <li v-if="page.has_next"><a v-on="click: next()" href=""><i class="uk-icon-angle-double-right"></i></a></li>
+            </ul>
+        </div>
+ </div>
+{%endblock%}
+             

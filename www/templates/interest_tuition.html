@@ -1,0 +1,240 @@
+{% extends "base.html" %}
+{% block title %}收费管理{% endblock %}
+{% block head %}
+    {{ super() }}
+<script>
+var vm
+function initVM(data) {
+    vm = new Vue({
+        el: '#div-kids',
+        data: {
+		    page:data.page,
+            kids: data.kids,
+			i_classes:data.i_classes,
+			class_select:'',
+			ispaid:'',
+            },
+        methods: {
+		    reload:function(index){
+			    event.preventDefault();
+				getJSON('/api/i_tuition', {
+					page: index,
+					class_select: this.class_select,					
+					ispaid:this.ispaid,
+				}, function (err, results) {
+					if (err) {
+						return fatal(err);
+					}
+					vm.kids=results.kids;
+					vm.page=results.page;			
+					for (i in vm.kids){				   	    
+					    vm.kids[i].charge=vm.kids[i].tuition*vm.kids[i].class_count					    
+				    }
+				});
+		    },
+            previous: function () {
+                this.reload(this.page.page_index - 1);
+            },
+            next: function () {
+                this.reload(this.page.page_index + 1);
+            },	
+			charge:function (kid){
+		        var paid=kid.tuition*kid.class_count
+				var r=confirm("收取"+kid.name+"学费"+paid+"元!");
+				if (r==true)
+				  { 
+				  url=('/api/i_tuition/add')
+					postJSON(encodeURI(url),{
+					kid_id:kid.id,
+					class_count:kid.class_count,
+					paid:kid.charge,
+					class_select:this.class_select,
+				},function (err, r) {
+                        if (err) {
+                            return alert(err.message || err.error || err);
+                        }
+						r=confirm("是否打印收据?");
+						if(r==true){vm.print(kid)}
+						vm.reload();
+				 }
+				 )}
+			},
+			print:function(kid){                    			
+					var cycle=Math.abs( Number(kid.class_count))+'课时'
+					var charge=kid.tuition*kid.class_count
+					postJSON('/print/i_tuition',{
+						kid_id:kid.id,
+						kid_name:kid.name,
+						cycle:cycle,
+						charge:charge,
+						i_class:this.class_select,					
+					},function (err, r) {
+							if (err) {
+								return alert(err.message || err.error || err);
+							}
+							window.open ("/print/charge", "newwindow","toolbar=no, location=no, directories=no, status=no, menubar=no, scrollbars=no, resizable=no, left=200, width=650, height=500") 
+						}
+					 )	
+				
+				},				
+				
+		    delete_tuition: function (kid) {
+                if (confirm('确认要删除“' + kid.name + '”的缴费信息?')) { 
+                    url=('/api/i_tuition/delete')
+					postJSON(encodeURI(url),{
+					kid_id:kid.id,
+					count:kid.class_count,
+                    class_select:this.class_select					
+					}, function (err, r) {
+                        if (err) {
+                            return alert(err.message || err.error || err);
+                        }
+                        vm.reload(1);
+                    });
+                };
+            }
+        },
+    });
+}
+$(function() {
+	getJSON('/api/i_tuition', {
+		page: {{ page_index }},
+		class_select: class_select,
+	}, function (err, results) {
+			if (err) {
+				return fatal(err);
+			}
+			initVM(results);			
+			x=document.getElementById("class_select");
+			classes=results.i_classes
+			for(var i=0;i<classes.length;i++){
+				v = classes[i].id; //value
+				name = classes[i].name;
+				opt = new Option(name,v); 
+				x.options.add(opt);
+				}
+	});
+});
+//时间转换为时间戳
+function js_strto_time(str_time){
+    var new_str = str_time.replace(/:/g,'-');
+    new_str = new_str.replace(/ /g,'-');
+    var arr = new_str.split("-");
+    var datum = new Date(Date.UTC(arr[0],arr[1]-1,arr[2],arr[3]-8,arr[4],arr[5]));
+    return strtotime = datum.getTime()/1000;
+}
+function js_date_time(unixtime) {
+    var timestr = new Date(parseInt(unixtime) * 1000);
+    return timestr;
+}
+function openwin() { 
+　　window.open ("/print", "newwindow", "height=400, width=600, toolbar =yes, menubar=yes, scrollbars=no, resizable=no, location=yes, status=yes") 
+} 	
+      
+</script>
+{% endblock %}
+
+{%block panel%}
+<div class="tm-panel  uk-panel uk-panel-box  ">                        
+	<div class="uk-panel-title">兴趣班管理</div>
+	<div class="uk-panel-li"><a href="/i_class_kids">人员调整</a></div> 
+	<div class="line"></div>
+	<div class="uk-panel-li"><a href="/i_class">班级人员信息</a></div>
+	<div class="line"></div>
+	<div class="uk-panel-li"><a href="/i_tuition">兴趣班学费</a></div>
+</div>
+{%endblock%}
+					
+{% block content %}
+<div class="tit"><a href="/">主页 </a>  》 <a href="">兴趣班管理 </a></div>
+
+<div id="div-kids" class="div-pagemain" >		
+
+
+	<form  class="uk-form uk-form-stacked ">
+	<div class="uk-grid">
+	
+	<div class="uk-width-1-4">
+	<div class="uk-form-row ">
+			<label class="uk-form-label">班级名称:</label>
+			<div class="uk-form-controls  uk-form-controls-text">
+				<select v-model="class_select" id="class_select" v-on="change:reload(1)">
+					<option value=""></option>
+				</select>
+		</div>
+	</div>	
+	</div>
+	
+
+		
+	<div class="uk-width-1-4">
+	<div class="uk-form-row ">
+		<label class="uk-form-label">是否收费:</label>
+		<div class="uk-form-controls  uk-form-controls-text">
+			<select v-model="ispaid" id="ispaid" v-on="change:reload({{ page_index }})">
+				<option value="" ></option>
+				<option value="已交或已退">已交（退）费</option>
+				<option value="未交或未退">未交（退）费</option>
+			</select>
+		</div>
+	</div>	
+	</div>
+
+	</div>
+	</form>
+<hr>
+	
+	<div class="divmain-title">班级信息</div>		
+	<div class="divcontainer uk-overflow-container">
+      
+        <table class="uk-table uk-table-striped  uk-text-nowrap">
+             <thead> 
+			  <tr>
+                    <th class="">姓名</th>
+                    <th class="">学费标准</th>
+                    <th class="">总课时</th>
+					<th class="">应收费用</th>	
+					<th class="">已收费用</th>										
+					<th class="">操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr v-repeat="kid: kids" >
+                    <td>
+                        <a target="_blank"  v-text="kid.name"></a>
+                    </td>
+                    <td>
+                        <a target="_blank"  v-text="kid.tuition"></a>
+                    </td>
+					                    <td>
+                        <a target="_blank"  v-text="kid.class_count"></a>
+                    </td>
+					<td>
+                        <a target="_blank"  v-text="kid.charge"></a>
+                    </td>
+					<td>
+                        <a target="_blank"  v-text="kid.paid"></a>
+                    </td>
+                    <td>                        
+						<a v-if="kid.paid!=0" href="#0" v-on="click:print(kid)">打印收据<i class=""></i>
+						<a v-if="kid.paid!=0" href="#0" v-on="click:delete_tuition(kid)">回退<i class=""></i>
+						<a v-if="kid.paid==0" href="#0" v-on="click:charge(kid)">收费<i class=""></i>
+
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+		</div>	
+		
+		<div class="divpage uk-width-1-1 uk-text-center">
+				<ul class="uk-pagination">
+                <li v-if="! page.has_previous" class="uk-disabled"><span><i class="uk-icon-angle-double-left"></i></span></li>
+                <li v-if="page.has_previous"><a v-on="click: previous()" href=""><i class="uk-icon-angle-double-left"></i></a></li>
+                <li class="uk-active"><span v-text="page.page_index"></span></li>
+                <li v-if="! page.has_next" class="uk-disabled"><span><i class="uk-icon-angle-double-right"></i></span></li>
+                <li v-if="page.has_next"><a v-on="click: next()" href=""><i class="uk-icon-angle-double-right"></i></a></li>
+            </ul>
+        </div>
+ </div>
+{%endblock%}
+             
