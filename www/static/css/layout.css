@@ -1,0 +1,149 @@
+﻿body {background: #F4F1F0 url(/static/image/.jpg) repeat top center;}
+hr {
+    margin-top: 10px;
+    background: transparent url(/static/image/111.jpg.gif) repeat-x;
+    height: 3px;
+    width: 100%;
+    border: 0px;
+}
+.clearPage {clear: both; height: 0px; min-height: 0px; line-height: 0px; font-size: 0px;}
+.left {float: left;}
+.right {float: right;}
+
+
+#divFullBackgroundWrapper  
+{ z-index: 2; 
+              position: relative; 
+              overflow: hidden; min-height: 100%; height: 100%;
+              padding-bottom: 0px;
+}
+.PageWrapper  {position: relative; width: 990px; margin: 17px;}
+.PageWrapperShadow {position: relative; width: 1024px; height: 100%; margin: 0 auto; padding: 17px 0px 0px 17px; background:transparent url(/static/image/bg.png) repeat-y top;}
+.cphContent { margin: 0px; padding: 0px; min-height: 540px; height: 100%; }
+
+/* .|. Header
+---------------------------------------------- */
+#divHeaderWrapper 
+{
+    position: relative; z-index: 7000;height: 135px; 
+    background: #FFF;
+}
+.PageWrapperHeader  {position: relative; width: 990px; margin: 0 auto;}
+        #divLogo {position: absolute; width: 504px; height: 130px; top: 10px; margin-left: 0px;}
+        #divLogo img { border: none;}
+        #divNavWrapper 
+        {
+          width: 992px;
+          height: 41px;
+          left: 7px;
+          position: absolute;
+          top: 135px;
+          z-index: 7000;
+		  
+        }
+        #divLinksMenu {position: absolute; top: 23px; right: -5px;}
+        #divLinksMenu a {padding: 5px;}
+        #divLinksMenu a img {vertical-align: middle; border: none;}
+
+        #divSearchBoxArea 
+        {
+                  background-color: #FFFFFF;
+                  width: 225px;
+                  height: 20px;
+                  right: 0px;
+                  position: absolute;
+                  top: 65px;
+                  z-index: 6000;
+                  border: 1px solid #d1d2d4;
+        }
+          
+        .btnSignUp {padding-top: 8px;}
+        .inputGray, .inputNormal  {
+	        width: 140px;
+	        /* height: 18px; */
+	        padding: 2px 6px 0px 6px;
+	        background-color: #FFFFFF;
+	        border: none;
+	        text-align: left;
+	        font-size: 12px;
+	        /* line-height: 12px; */
+	        font-weight: normal;
+	        letter-spacing: 0px;
+	        vertical-align: middle;
+        }
+        .inputNormal {color: #999999}
+        .inputGray {color:#d1d2d4;}
+        
+
+#iTopCrumbs a:link {color: #808185;text-decoration: none;}
+#iTopCrumbs a:visited {color: #808185;text-decoration: none;}
+#iTopCrumbs a:hover {color: #000000;text-decoration: none;}
+
+/* .|. Footer
+---------------------------------------------- */
+
+/*
+#footer 
+{ z-index: 100; position: relative;
+  width: 100%; height: 100%; bottom: 0px; padding-top: 10px;}
+*/
+#footer_boxes 
+{ z-index: 2;
+    position: relative;
+    color: #999999; 
+    width: 940px;
+    min-height: 303px; height: 100%; 
+    padding-top: 8px;
+    background-color: #e2f3fb;
+    margin: 10px auto 15px auto;
+}
+
+.footer_box 
+{ 
+    float: left;
+    width: 270px;
+    min-height: 280px; height: 100%; 
+    padding: 10px;
+    margin-left: 10px;
+}
+
+.footer_box .title {background: transparent url('/images/bg-footer-title.gif') repeat-x bottom left; padding: 10px 0px; margin-bottom: 5px;}
+
+               
+.poweredbyWaitt {color: #999999; text-align: center;}
+.poweredbyWaitt a:link, .poweredbyWaitt a:visited {color: #999999; text-decoration: none;}
+.poweredbyWaitt a:hover {color: #333333; text-decoration: none;}
+
+.gPlus {
+    float: right;
+    padding-right: 45px
+}
+      
+
+/* .|. Contact Us Form
+---------------------------------------------- */
+#divForm, #divFormThankYou 
+{
+    width: 460px;
+    padding: 0px 15px 15px 15px;
+    background: #FFFFFF url('/images/bg-form-pattern.jpg') repeat-x;
+    border: 1px solid #CCCCCC; 
+    min-height: 250px; height: 100%;
+}
+#divForm td { vertical-align: top;}
+
+
+/* .|. Blob Summary V2  & Normal Blob V2 (default values)
+----------------------------------------------------------------------- */
+.blob_v2_separator {height: 10px;}
+.blob_summary_v2_wrapper {width: 640px;}
+.blob_summary_v2_separator {height: 10px;}
+.blob_summary_v2_readmore a, .readmoreClass a {
+    position: relative;
+    width: 87px; height: 18px; 
+    background: transparent url('/images/btnLearnMore.gif') no-repeat center;
+    text-indent: -9999px;
+	font-size: 0px; 
+	display: block;
+	/*float: right;*/
+}
